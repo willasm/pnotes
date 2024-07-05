@@ -1,0 +1,16 @@
+{
+  "Project Note File Link": {
+      "prefix": "projectNoteLink",
+      "body": [
+        "Project File: ${1:Filename}.md$0"
+      ],
+      "description": "Project Note File Link"
+  },
+  "Global Note File Link": {
+      "prefix": "globalNoteLink",
+      "body": [
+        "Global File: ${1:Filename}.md$0"
+      ],
+      "description": "Global Note File Link"
+  }
+}
