@@ -35,7 +35,6 @@ async function activate(context) {
   // activate - Initialize Extension 
   //--------------------------------------------------------------------------------
   myContext = context;                                                      // Save context
-  fs.copyFileSync(guideImage, globalNotesFolder+path.sep+'ProjectNotesSidebar.png');  // Copy guides image to global notes folder
   
   // activate - Use Old Settings if Available 
   if (oldGlobalNotesFolder != undefined && oldGlobalNotesFolder.length > 0) {
@@ -90,11 +89,13 @@ async function activate(context) {
   if (!fs.existsSync(globalNotesFolder)) {
     fs.mkdirSync(globalNotesFolder, { recursive: true });
     if (useGuide) {
+      fs.copyFileSync(guideImage, globalNotesFolder+path.sep+'ProjectNotesSidebar.png');  // Copy guides image to global notes folder
       fs.writeFileSync(globalNotesTipsFile,globalGuideFileData);
       settings.update("createGlobalProjectNotesGuideFile",false, 1);
     }
   };
   if (!fs.existsSync(globalNotesTipsFile) && useGuide == true) {
+    fs.copyFileSync(guideImage, globalNotesFolder+path.sep+'ProjectNotesSidebar.png');  // Copy guides image to global notes folder
     fs.writeFileSync(globalNotesTipsFile,globalGuideFileData);
     settings.update("createGlobalProjectNotesGuideFile",false, 1);
   };

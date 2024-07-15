@@ -2,7 +2,7 @@
   "name": "pnotes",
   "displayName": "Project Notes",
   "description": "Project Notes for Visual Studio Code",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "author": {
     "name": "William McKeever",
     "email": "willmck63@gmail.com"
@@ -402,7 +402,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/willasm/pnotes.git"
+    "url": "https://github.com/willasm/pnotes"
   },
   "bugs": {
     "url": "https://github.com/willasm/pnotes/issues",
