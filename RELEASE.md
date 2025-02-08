@@ -11,10 +11,12 @@
 
 <!-- ## [v-inc] ${YEAR4}-${MONTHNUMBER}-${DATE} -->
 
-## [2.1.1] 2025-02-07
+## [2.1.3] 2025-02-07
 ### Fixed
-- Unintentionally removed the required `node_modules` folder in `.vscodeignore` which broke the extension
+- Image link in `LocalNotesHaveMoved.md`
 
+### Removed
+- Unnecessary console.log()'s
 
 For a full list of changes, please see the projects [Changelog](CHANGELOG.md) file.
 
