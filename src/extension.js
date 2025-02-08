@@ -152,17 +152,17 @@ async function activate(context) {
     };
   };
 
-// console.log("projectsOldPnotesFolder: ", projectsOldPnotesFolder);
-// console.log("globalNotesTipsFile", globalNotesTipsFile);
-// console.log("localTodoFile", localTodoFile);
-// console.log("localScratchpadFile", localScratchpadFile);
-// console.log('------------------------------------------');
-// console.log("allProjectNotesLocation", allProjectNotesLocation);
-// console.log("allProjectNotesFolder", allProjectNotesFolder);
-// console.log("localNotesRootFolder", localNotesRootFolder);
-// console.log("globalNotesRootFolder", globalNotesRootFolder);
-// console.log("thisProjectsNotesFolder", thisProjectsNotesFolder);
-// console.log("thisProjectsNotesFolderName", thisProjectsNotesFolderName);
+console.log("projectsOldPnotesFolder: ", projectsOldPnotesFolder);
+console.log("globalNotesTipsFile", globalNotesTipsFile);
+console.log("localTodoFile", localTodoFile);
+console.log("localScratchpadFile", localScratchpadFile);
+console.log('------------------------------------------');
+console.log("allProjectNotesLocation", allProjectNotesLocation);
+console.log("allProjectNotesFolder", allProjectNotesFolder);
+console.log("localNotesRootFolder", localNotesRootFolder);
+console.log("globalNotesRootFolder", globalNotesRootFolder);
+console.log("thisProjectsNotesFolder", thisProjectsNotesFolder);
+console.log("thisProjectsNotesFolderName", thisProjectsNotesFolderName);
 
   // activate - Remove Older Unused Settings 
   // Old Project Notes Settings

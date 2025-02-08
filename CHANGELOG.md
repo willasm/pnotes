@@ -2,6 +2,10 @@
 
 <!-- ## [v-inc] ${YEAR4}-${MONTHNUMBER}-${DATE} -->
 
+## [2.1.1] 2025-02-07
+### Fixed
+- Unintentionally removed the required `node_modules` folder in `.vscodeignore` which broke the extension
+
 ## [2.1.0] 2025-02-07
 ### Changed
 - Local project notes have been moved out of the projects workspace
