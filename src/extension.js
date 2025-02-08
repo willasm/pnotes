@@ -1,170 +1,227 @@
-const vscode = require("vscode");
-const path = require("path");
-const fs = require("fs");
-const os = require("os");
-const { env } = require("process");
-const { readFile } = require('fs/promises');
-const ProjectProvider = require("./projectDataProvider.js");
-//const ProjectDecorationProvider = require("./projectDataProvider");
-const GlobalProvider = require("./globalDataProvider.js");
+"use strict";
 
-let myContext;
+const vscode = require("vscode");
+const fs = require("fs-extra");
+const path = require("path");
+const os = require("os");
+
+const LocalProvider = require("./localDataProvider.js");
+const GlobalProvider = require("./globalDataProvider.js");
+const { error } = require("console");
+const { existsSync } = require("fs");
 let settings = vscode.workspace.getConfiguration("pnotes");
 let oldSettings = vscode.workspace.getConfiguration("project-notes");
-let oldGlobalNotesFolder = oldSettings.get("globalNotesFolder");
-let oldLocalNotesFolder = oldSettings.get("localNotesFolder");
-let globalNotesFolder = settings.get("globalNotesFolder");
-let localNotesFolder = settings.get("localNotesFolder");
+let oldLocalPath = oldSettings.get("localNotesFolder") || ".pnotes";
+let allProjectNotesLocation = settings.get("projectNotesFolderLocation");
 let useScratchpad = settings.get("autoCreateScratchpadLocalProjectNote");
 let useTodo = settings.get("autoCreateTodoLocalProjectNote");
 let useGuide = settings.get("createGlobalProjectNotesGuideFile");
-let addToGitIgnore = settings.get("addLocalProjectsNoteFolderToGitIgnoreFile");
-let createGitIgnore = settings.get("createGitIgnoreFileIfNotFound");
-let localNotesPath = vscode.workspace.workspaceFolders[0].uri.fsPath+path.sep+localNotesFolder;
-let localScratchpadFile = localNotesPath+path.sep+"(Scratchpad).md";
-let localTodoFile = localNotesPath+path.sep+"(TODO).md";
-let globalNotesTipsFile = globalNotesFolder+path.sep+"(Project Notes Guide).md";
-let gitIgnoreFile = vscode.workspace.workspaceFolders[0].uri.fsPath+path.sep+'.gitignore';
-let guideImage = vscode.extensions.getExtension('willasm.pnotes').packageJSON.extensionLocation.fsPath+path.sep+'images'+path.sep+'ProjectNotesSidebar.png';
+let usePrompt = settings.get("promptMoveLocalNotes");
+//let guideImage = vscode.extensions.getExtension('willasm.pnotes').packageJSON.extensionLocation.fsPath+path.sep+'images'+path.sep+'ProjectNotesSidebar.png';
+let allProjectNotesFolder = "";
+let projectsOldPnotesFolder = "";
+let localNotesRootFolder = "";
+let globalNotesRootFolder = "";
+let thisProjectsNotesFolder = "";
+let thisProjectsNotesFolderName = "";
+
+let myContext;
 
 //  ╭──────────────────────────────────────────────────────────────────────────────╮
-//  │                            ● Function Activate ●                             │
+//  │                            ● Function activate ●                             │
 //  ╰──────────────────────────────────────────────────────────────────────────────╯
 async function activate(context) {
 
   // activate - Initialize Extension 
   //--------------------------------------------------------------------------------
-  myContext = context;                                                      // Save context
-  
-  // activate - Use Old Settings if Available 
-  if (oldGlobalNotesFolder != undefined && oldGlobalNotesFolder.length > 0) {
-    globalNotesFolder = oldGlobalNotesFolder;
-    settings.update("globalNotesFolder",globalNotesFolder, 1);
-    // Need to remove old setting or this will always run
-    oldSettings.update("globalNotesFolder",undefined, 1);
-  };
-  if (oldLocalNotesFolder != undefined && oldLocalNotesFolder.length > 0) {
-    localNotesFolder = oldLocalNotesFolder;
-    settings.update("localNotesFolder",localNotesFolder, 1);
-    // Need to remove old setting or this will always run
-    oldSettings.update("localNotesFolder",undefined, 1);
-  };
+  myContext = context;                    // Save context
 
-  // activate - Get New Settings 
-  if (globalNotesFolder == undefined || globalNotesFolder == "") {  // Set default global notes location to home folder + '.pnotes'
-    let globalNotesFolderUri = vscode.Uri.file(path.join(os.homedir(), path.sep, '.pnotes'));
-    globalNotesFolder = globalNotesFolderUri.fsPath;
-    settings.update("globalNotesFolder",globalNotesFolder, 1);
-  };
-  if (localNotesFolder == undefined || localNotesFolder == "") {    // Set default local notes location to workspace folder + '.pnotes'
-    let localNotesFolderUri = vscode.workspace.workspaceFolders[0].uri.fsPath+path.sep+'.pnotes';
-    localNotesFolder = localNotesFolderUri.fsPath;
-    settings.update("localNotesFolder",localNotesFolder, 1);
-  };
-
-  // activate - Ensure Old `Project Notes + TODO Highlighter` Extension is Not Installed 
-  let oldVer = vscode.extensions.getExtension('willasm.project-notes');
-  if (oldVer != undefined) {
-    await vscode.window.showWarningMessage('Old extension version `Project Notes + TODO Highlighter` is still installed. Please remove or disable it before using this updated version of the extension','Ok');
-  };
-
-  // activate - Define Global Notes Guide File 
-  const globalGuideFileData =
-`<!--- OPEN IN PREVIEW MODE FOR BEST VIEWING RESULTS (CTRL+SHIFT+V) -->\n\n
-# Welcome to Project Notes\n
-> Note that it is ok to delete this file once you are finished reading it. You can always re-create the file by enabling the setting \`Create Global Project Notes Guide File\` in this extensions settings.\n
-## Project Notes Sidebar Screenshot\n
-![Project Notes Sidebar](ProjectNotesSidebar.png)\n
-## Commands Available from the Command Palette\n
-\`Project Notes: Set Global Notes Folder Location\` Sets the folder location for your global notes\n
-\`Project Notes: Set Local Notes Folder Name\` Sets the workspace sub-folder name for your project notes (Defaults to \`.pnotes\`)\n
-\`Project Notes: Open Note File Link\` Opens note file link on the current line of the editor (See Project Notes \`README.md\` for a detailed description)\n
-\`Project Notes: Create New TODO Task\` Prompts for the text of a new task which will be appended to the \`(TODO).md\` file in the local projects folder\n
-\`Project Notes: Add New User Icons\` Opens an "Open File Dialog" allowing you to select multiple svg icons for use with files in the tree view\n
-\`Project Notes: List Current User Icons\` Opens a quick pick list of all current user icons\n
-\`Project Notes: Remove User Icons\` Opens a multi-select quick pick list allowing you to select multiple icons for removal from the extension\n
-`;
-
-  // activation - Create global notes folder and `(Project Notes Guide).md` if needed 
-  if (!fs.existsSync(globalNotesFolder)) {
-    fs.mkdirSync(globalNotesFolder, { recursive: true });
-    if (useGuide) {
-      fs.copyFileSync(guideImage, globalNotesFolder+path.sep+'ProjectNotesSidebar.png');  // Copy guides image to global notes folder
-      fs.writeFileSync(globalNotesTipsFile,globalGuideFileData);
-      settings.update("createGlobalProjectNotesGuideFile",false, 1);
-    }
-  };
-  if (!fs.existsSync(globalNotesTipsFile) && useGuide == true) {
-    fs.copyFileSync(guideImage, globalNotesFolder+path.sep+'ProjectNotesSidebar.png');  // Copy guides image to global notes folder
-    fs.writeFileSync(globalNotesTipsFile,globalGuideFileData);
-    settings.update("createGlobalProjectNotesGuideFile",false, 1);
-  };
-
-  // activation - Create local notes folder and `(Scratchpad).md` and `(todo).md` if needed 
-  if (!fs.existsSync(localNotesPath)) {
-    fs.mkdirSync(localNotesPath, { recursive: true });
-    if (useScratchpad) {
-      fs.writeFileSync(localScratchpadFile,"# Scratchpad\n");
-    }
-  };
-  if (!fs.existsSync(localScratchpadFile) && useScratchpad == true) {
-    fs.writeFileSync(localScratchpadFile,"# Scratchpad\n");
-  };
-  if (!fs.existsSync(localTodoFile) && useTodo == true) {
-    fs.writeFileSync(localTodoFile,"# TODO\n");
-  };
-
-  // activation - Create `.gitignore` File and Add Local Project Notes Folder if Needed 
-  if (fs.existsSync(gitIgnoreFile)) {
-    if (addToGitIgnore) {
-      let ignoreData = await readFile(gitIgnoreFile, {'encoding':'utf-8','flag:':'r+'});
-      if (!ignoreData.includes(localNotesFolder)) {
-        let data = await ignoreData.concat(['\n'+localNotesFolder+'/\n']);
-        let re = new RegExp(`\s*[\r\n]+(${localNotesFolder})`);
-        data = await data.replace(re, '\n'+localNotesFolder);
-        fs.writeFileSync(gitIgnoreFile, data, {'encoding':'utf-8'}, function(err) {
-        if (err) {
-          console.error(err);
-        };
-        });
-      };
-    };
+  // activate - Get Folders Configuration 
+  if (allProjectNotesLocation === "" || allProjectNotesLocation === undefined) {
+    allProjectNotesLocation = os.homedir();
+    settings.update("projectNotesFolderLocation", allProjectNotesLocation, true);
+    allProjectNotesFolder = path.join(os.homedir(), path.sep, '.projectnotes');
+    localNotesRootFolder = path.join(allProjectNotesFolder, path.sep, 'projects');
+    globalNotesRootFolder = path.join(allProjectNotesFolder, path.sep, 'global');
+    await fs.mkdirSync(allProjectNotesFolder,(err) => {if (err) throw err});
+    await fs.mkdirSync(localNotesRootFolder,(err) => {if (err) throw err});
+    await fs.mkdirSync(globalNotesRootFolder,(err) => {if (err) throw err});
   } else {
-    if (createGitIgnore) {
-      if (addToGitIgnore) {
-        fs.writeFileSync(gitIgnoreFile, localNotesFolder+'/\n');
-      } else {
-        fs.writeFileSync(gitIgnoreFile,"");
+    allProjectNotesFolder = path.join(allProjectNotesLocation, path.sep, '.projectnotes');
+    localNotesRootFolder = path.join(allProjectNotesFolder, path.sep, 'projects');
+    globalNotesRootFolder = path.join(allProjectNotesFolder, path.sep, 'global');
+    if (!fs.existsSync(allProjectNotesFolder)) {
+      await fs.mkdirSync(allProjectNotesFolder,(err) => {if (err) throw err});
+      await fs.mkdirSync(localNotesRootFolder,(err) => {if (err) throw err});
+      await fs.mkdirSync(globalNotesRootFolder,(err) => {if (err) throw err});
+    };
+  };
+  
+  // activate - Get This Projects Local Notes Folder 
+  let workspaceFolders = vscode.workspace.workspaceFolders
+  const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0)>>>0;
+  if (workspaceFolders.length === 0) {
+    return;
+  } else if (workspaceFolders.length === 1) {
+    let thisProjectsNotesFolderNameFull = workspaceFolders[0].uri.fsPath;
+    let nameHash = hashCode(thisProjectsNotesFolderNameFull);
+    thisProjectsNotesFolderName = thisProjectsNotesFolderNameFull.split(path.sep).pop()+nameHash;
+    thisProjectsNotesFolder = path.join(localNotesRootFolder, path.sep, thisProjectsNotesFolderName);
+  } else {
+    let locFlag = false;
+    for (let i = 0; i < workspaceFolders.length; i++) {
+      let thisProjectsNotesFolderNameFull = workspaceFolders[i].uri.fsPath;
+      let nameHash = hashCode(thisProjectsNotesFolderNameFull);
+      thisProjectsNotesFolderName = thisProjectsNotesFolderNameFull.split(path.sep).pop()+nameHash;
+      if (fs.existsSync(path.join(localNotesRootFolder, path.sep, thisProjectsNotesFolderName))) {
+        locFlag = true;
+        thisProjectsNotesFolder = path.join(localNotesRootFolder, path.sep, thisProjectsNotesFolderName);
+        break;
+      };
+    };
+    if (!locFlag) {
+      let choice = await vscode.window.showWorkspaceFolderPick({placeHolder: `Extension Project Notes requests a workspace name selection to be used for local notes`})
+      if (choice === undefined) {
+        let thisProjectsNotesFolderNameFull = workspaceFolders[0].uri.fsPath;
+        let nameHash = hashCode(thisProjectsNotesFolderNameFull);
+        thisProjectsNotesFolderName = thisProjectsNotesFolderNameFull.split(path.sep).pop()+nameHash;
+        thisProjectsNotesFolder = path.join(localNotesRootFolder, path.sep, thisProjectsNotesFolderName);
+        thisProjectsNotesFolder = path.join(localNotesRootFolder, path.sep, thisProjectsNotesFolderName);
+          } else {
+        let rootFolder = workspaceFolders[0].uri.fsPath;
+        let rootFolderPath = rootFolder.substring(0, rootFolder.lastIndexOf('/'));
+        let thisProjectsNotesFolderNameFull = path.join(rootFolderPath, path.sep, choice.name);
+        let nameHash = hashCode(thisProjectsNotesFolderNameFull);
+        thisProjectsNotesFolderName = thisProjectsNotesFolderNameFull.split(path.sep).pop()+nameHash;
+        thisProjectsNotesFolder = path.join(localNotesRootFolder, path.sep, thisProjectsNotesFolderName);
+      };
+    };
+  };
+  // Create this projects notes folder if not yet created
+  if (!fs.existsSync(thisProjectsNotesFolder)) {
+    await fs.mkdirSync(thisProjectsNotesFolder,(err) => {if (err) throw err});
+  };
+
+  // activate - Initialize Default Notes 
+  let localScratchpadFile = path.join(thisProjectsNotesFolder, path.sep, "(Scratchpad).md");
+  let localTodoFile = path.join(thisProjectsNotesFolder, path.sep, "(TODO).md");
+  let globalNotesTipsFile = path.join(globalNotesRootFolder, path.sep, "(Project Notes Guide).md");
+  let localScratchpadFileSource = path.join(context.extensionPath, path.sep, "src", path.sep, "(Scratchpad).md");
+  let scratchpadBuffer = await fs.readFileSync(localScratchpadFileSource, 'utf8');
+  if (!fs.existsSync(localScratchpadFile)) {
+    if (useScratchpad) {
+      await fs.writeFileSync(localScratchpadFile, scratchpadBuffer);
+    };
+  };
+  let localTodoFileSource = path.join(context.extensionPath, path.sep, "src", path.sep)+"(TODO).md";
+  let todoBuffer = await fs.readFileSync(localTodoFileSource, 'utf8');
+  if (!fs.existsSync(localTodoFile)) {
+    if (useTodo) {
+      await fs.writeFileSync(localTodoFile, todoBuffer);
+    };
+  };
+  let globalNotesTipsFileSource = path.join(context.extensionPath, path.sep, "src", path.sep)+"(Project Notes Guide).md";
+  let globalNotesTipsFileBuffer = await fs.readFileSync(globalNotesTipsFileSource, 'utf8');
+  if (!fs.existsSync(globalNotesTipsFile)) {
+    if (useGuide) {
+      await fs.writeFileSync(globalNotesTipsFile, globalNotesTipsFileBuffer);
+      settings.update("createGlobalProjectNotesGuideFile",false, true);
+    };
+  };
+
+  // activate - Handle Local Notes in Old Local Folders Location 
+  projectsOldPnotesFolder = path.join(workspaceFolders[0].uri.fsPath, oldLocalPath);
+  if (fs.existsSync(projectsOldPnotesFolder)) {
+    const oldFilesCount = await fs.readdirSync(projectsOldPnotesFolder).length
+    if (oldFilesCount) {
+      if (usePrompt) {
+      let retSelection = await vscode.window.showInformationMessage('Local project notes detected in old location...','More Info', 'Move Them', 'Copy Them', 'Ignore');
+        if (retSelection === "More Info") {
+          let infoFile = await vscode.workspace.openTextDocument(path.join(context.extensionPath, path.sep, "src", path.sep, "LocalNotesHaveMoved.md"));
+          const pathToNote = vscode.Uri.file(infoFile.uri.fsPath);
+          await vscode.commands.executeCommand('markdown.showPreview', pathToNote);
+        } else if (retSelection === "Move Them") {
+          fs.moveSync(projectsOldPnotesFolder, thisProjectsNotesFolder, { overwrite: true });
+        } else if (retSelection === "Copy Them") {
+          fs.copySync(projectsOldPnotesFolder, thisProjectsNotesFolder, { overwrite: true, preserveTimestamps: true });
+          fs.renameSync(projectsOldPnotesFolder, projectsOldPnotesFolder+'-bkp')
+        } else if (retSelection === "Ignore") {
+          settings.update("promptMoveLocalNotes", false, true);
+        };
       };
     };
   };
 
-  // activation - Register Project Notes Treeview Data Provider 
-  const ProjectOutlineProvider = new ProjectProvider(context, localNotesPath);
-  vscode.window.registerTreeDataProvider('projectNotesTreeview', ProjectOutlineProvider);
+// console.log("projectsOldPnotesFolder: ", projectsOldPnotesFolder);
+// console.log("globalNotesTipsFile", globalNotesTipsFile);
+// console.log("localTodoFile", localTodoFile);
+// console.log("localScratchpadFile", localScratchpadFile);
+// console.log('------------------------------------------');
+// console.log("allProjectNotesLocation", allProjectNotesLocation);
+// console.log("allProjectNotesFolder", allProjectNotesFolder);
+// console.log("localNotesRootFolder", localNotesRootFolder);
+// console.log("globalNotesRootFolder", globalNotesRootFolder);
+// console.log("thisProjectsNotesFolder", thisProjectsNotesFolder);
+// console.log("thisProjectsNotesFolderName", thisProjectsNotesFolderName);
 
-  // activation - Register Global Notes Treeview Data Provider 
-  const GlobalOutlineProvider = new GlobalProvider(context, globalNotesFolder);
+  // activate - Remove Older Unused Settings 
+  // Old Project Notes Settings
+  oldSettings.update("globalNotesFolder", undefined, true);
+  oldSettings.update("localNotesFolder", undefined, true);
+  // Redundant pnotes Settings
+  settings.update("globalNotesFolder", undefined, true);
+  settings.update("localNotesFolder", undefined, true);
+  settings.update("addLocalProjectsNoteFolderToGitIgnoreFile", undefined, true);
+  settings.update("createGitIgnoreFileIfNotFound", undefined, true);
+
+  // activate - Register Local Notes Treeview Data Provider 
+  const LocalOutlineProvider = new LocalProvider(context, thisProjectsNotesFolder);
+  vscode.window.registerTreeDataProvider('localNotesTreeview', LocalOutlineProvider);
+
+  // activate - Register Global Notes Treeview Data Provider 
+  const GlobalOutlineProvider = new GlobalProvider(context, globalNotesRootFolder);
   vscode.window.registerTreeDataProvider('globalNotesTreeview', GlobalOutlineProvider);
 
-  // activation - Create Global Notes folder file watcher 
-  const globalWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(globalNotesFolder), '**/*.{md,MD,Md,mD}'));
+  // activate - Register Local Notes Refresh Treeview Command 
+  vscode.commands.registerCommand("pnotes.refreshLocal", () =>
+    LocalOutlineProvider.refresh()
+  );
+
+  // activate - Register Global Notes Refresh Treeview Command 
+  vscode.commands.registerCommand("pnotes.refreshGlobal", () =>
+    GlobalOutlineProvider.refresh()
+  );
+
+//   vscode.workspace.onWillSaveTextDocument(async () => {
+//     console.log('doing');
+//     await LocalOutlineProvider.refresh();
+// //    vscode.commands.executeCommand("pnotes.refreshLocal");
+//   });
+
+//   vscode.workspace.onDidSaveTextDocument(async () => {
+//     console.log('done');
+//     await LocalOutlineProvider.refresh();
+// //    vscode.commands.executeCommand("pnotes.refreshLocal");
+//   });
+
+  // activate - Create Local Notes folder file watcher 
+  const localWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(thisProjectsNotesFolder), '**/*.{md,MD,Md,mD}'));
+  localWatcher.onDidCreate(uri => LocalOutlineProvider.refresh()); // Listen to files/folders being created
+  localWatcher.onDidDelete(uri => LocalOutlineProvider.refresh()); // Listen to files/folders getting deleted
+  localWatcher.onDidChange(uri => LocalOutlineProvider.refresh()); // Listen to files/folders getting saved
+
+  // activate - Create Global Notes folder file watcher 
+  const globalWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(globalNotesRootFolder), '**/*.{md,MD,Md,mD}'));
   globalWatcher.onDidCreate(uri => GlobalOutlineProvider.refresh()); // Listen to files/folders being created
   globalWatcher.onDidDelete(uri => GlobalOutlineProvider.refresh()); // Listen to files/folders getting deleted
+  globalWatcher.onDidChange(uri => GlobalOutlineProvider.refresh()); // Listen to files/folders getting saved
 
-  // activation - Create Local Notes folder file watcher 
-  const localWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(localNotesPath), '**/*.{md,MD,Md,mD}'));
-  localWatcher.onDidCreate(uri => ProjectOutlineProvider.refresh()); // Listen to files/folders being created
-  localWatcher.onDidDelete(uri => ProjectOutlineProvider.refresh()); // Listen to files/folders getting deleted
-//  localWatcher.onDidChange(uri => ProjectOutlineProvider.refresh()); // Listen to files/folders getting deleted
-
-  // activation - Register Extension Commands 
-  vscode.commands.registerCommand('pnotes.setNotesGlobalFolder', setNotesGlobalFolder);
-  vscode.commands.registerCommand('pnotes.setNotesLocalFolder', setNotesLocalFolder);
-  vscode.commands.registerCommand('pnotes.newProjectNote', newProjectNote);
-  vscode.commands.registerCommand('pnotes.previewProjectNote', previewProjectNote);
-  vscode.commands.registerCommand('pnotes.renameProjectNote', renameProjectNote);
-  vscode.commands.registerCommand('pnotes.deleteProjectNote', deleteProjectNote);
+  // activate - Register Extension Commands 
+  vscode.commands.registerCommand('pnotes.setNotesRootFolder', setNotesRootFolder);
+  vscode.commands.registerCommand('pnotes.newLocalNote', newLocalNote);
+  vscode.commands.registerCommand('pnotes.previewLocalNote', previewLocalNote);
+  vscode.commands.registerCommand('pnotes.renameLocalNote', renameLocalNote);
+  vscode.commands.registerCommand('pnotes.deleteLocalNote', deleteLocalNote);
   vscode.commands.registerCommand('pnotes.newGlobalNote', newGlobalNote);
   vscode.commands.registerCommand('pnotes.previewGlobalNote', previewGlobalNote);
   vscode.commands.registerCommand('pnotes.renameGlobalNote', renameGlobalNote);
@@ -175,13 +232,12 @@ async function activate(context) {
   vscode.commands.registerCommand('pnotes.listUserIcons', listUserIcons);
   vscode.commands.registerCommand('pnotes.removeUserIcons', removeUserIcons);
 
-  // activation - Push Subscriptions 
-  context.subscriptions.push(setNotesGlobalFolder);
-  context.subscriptions.push(setNotesLocalFolder);
-  context.subscriptions.push(newProjectNote);
-  context.subscriptions.push(previewProjectNote);
-  context.subscriptions.push(renameProjectNote);
-  context.subscriptions.push(deleteProjectNote);
+  // activate - Push Subscriptions 
+  context.subscriptions.push(setNotesRootFolder);
+  context.subscriptions.push(newLocalNote);
+  context.subscriptions.push(previewLocalNote);
+  context.subscriptions.push(renameLocalNote);
+  context.subscriptions.push(deleteLocalNote);
   context.subscriptions.push(newGlobalNote);
   context.subscriptions.push(previewGlobalNote);
   context.subscriptions.push(renameGlobalNote);
@@ -191,110 +247,77 @@ async function activate(context) {
   context.subscriptions.push(addUserIcons);
   context.subscriptions.push(listUserIcons);
   context.subscriptions.push(removeUserIcons);
-
 };
 
 
 //  ╭──────────────────────────────────────────────────────────────────────────────╮
-//  │                      ● Function setNotesGlobalFolder ●                       │
+//  │                       ● Function setNotesRootFolder ●                        │
 //  │                                                                              │
-//  │                     • Set Global Notes Folder Location •                     │
+//  │                • Set Global and Local Notes Folder Location •                │
 //  ╰──────────────────────────────────────────────────────────────────────────────╯
-async function setNotesGlobalFolder() {
+async function setNotesRootFolder() {
 
-  // setNotesGlobalFolder - Get Global Notes Folder From User 
+  // setNotesRootFolder - Get Global Notes Folder From User 
   const home = vscode.Uri.file(path.join(os.homedir()))
-  const options = OpenDialogOptions = {
-    title: "Select Folder Location for Global Notes",
+  const options = {
+    title: "Select Folder Location for Global and Local Notes",
     defaultUri: home,
     canSelectMany: false,
     canSelectFolders: true,
     canSelectFiles: false,
-    openLabel: "Select Folder for Global Notes"
+    openLabel: "Select Folder for All Global and Local Notes"
   };
   const folderUri = await vscode.window.showOpenDialog(options);
   if (folderUri && folderUri[0]) {
-    globalNotesFolder = folderUri[0].fsPath;
-    settings.update("globalNotesFolder",globalNotesFolder,1);
+    if (fs.existsSync(path.join(allProjectNotesLocation, '.projectnotes'))) {
+      await fs.renameSync(path.join(allProjectNotesLocation, '.projectnotes'), path.join(folderUri[0].fsPath, '.projectnotes'));
+    };
+    allProjectNotesLocation = folderUri[0].fsPath;
+    await settings.update("projectNotesFolderLocation",allProjectNotesLocation,1);
     await vscode.commands.executeCommand('workbench.action.restartExtensionHost');
     //await vscode.commands.executeCommand('workbench.action.reloadWindow');
-    };
-};
-
-
-//  ╭──────────────────────────────────────────────────────────────────────────────╮
-//  │                       ● Function setNotesLocalFolder ●                       │
-//  │                                                                              │
-//  │                      • Set Local Notes Folder Location •                     │
-//  ╰──────────────────────────────────────────────────────────────────────────────╯
-async function setNotesLocalFolder() {
-
-  // setNotesLocalFolder - Get Local Notes Folder From User 
-  let options = {
-    placeHolder: `Current local notes folder is ${localNotesFolder}`,
-    prompt: "Enter new local notes folder name",
-    title: "---=== Project Notes - Set Local Notes Folder Name ===---"
   };
-  const newLocalFolder = await vscode.window.showInputBox(options);
-
-  // setNotesLocalFolder - Check if User Cancelled 
-  if (!newLocalFolder) {
-    return;
-  }
-
-  // setNotesLocalFolder - Save New Local Notes Folder 
-  //let settings = vscode.workspace.getConfiguration("pnotes");
-  settings.update("localNotesFolder",newLocalFolder,1);
-  await vscode.commands.executeCommand('workbench.action.restartExtensionHost');
-  //await vscode.commands.executeCommand('workbench.action.reloadWindow');
-
 };
 
 
 //  ╭──────────────────────────────────────────────────────────────────────────────╮
-//  │                         ● Function newProjectNote ●                          │
+//  │                          ● Function newLocalNote ●                           │
 //  │                                                                              │
-//  │                         • Create New Project Note •                          │
+//  │                          • Create New Local Note •                           │
 //  ╰──────────────────────────────────────────────────────────────────────────────╯
-async function newProjectNote() {
+async function newLocalNote() {
 
-  // newProjectNote - Prompt user for new notes name 
+  // newLocalNote - Prompt user for new notes name 
   let fileName = await vscode.window.showInputBox({
     placeHolder: "Enter new project note name (Extension .md is not required)",
     prompt: "Create New Project Note: "
   });
-  // newProjectNote - Return if no note name entered or user pressed escape 
+  // newLocalNote - Return if no note name entered or user pressed escape 
   if (fileName === undefined || fileName === "") {
     return;
   }
 
-  // newProjectNote - Get full path to new local note 
+  // newLocalNote - Get full path to new local note 
   let parts = fileName.split(".");
   fileName = parts[0]+'.md';
-  let newProjectNote = vscode.workspace.workspaceFolders[0].uri.fsPath+path.sep+localNotesFolder+path.sep+fileName;
+  let newLocalNote = path.join(thisProjectsNotesFolder, path.sep, fileName);
 
-  // newProjectNote - Create local notes folder if needed 
-  let newProjectNotePath = vscode.workspace.workspaceFolders[0].uri.fsPath+path.sep+localNotesFolder;
-  if (!fs.existsSync(newProjectNotePath)) {
-      fs.mkdirSync(newProjectNotePath, {recursive: true});
-  };
-
-  // newProjectNote - Create New Project Note and Open for Editing  
+  // newLocalNote - Create New Project Note and Open for Editing  
   const workspaceEdit = new vscode.WorkspaceEdit();
-  workspaceEdit.createFile(vscode.Uri.file(newProjectNote), {overwrite: false});
+  workspaceEdit.createFile(vscode.Uri.file(newLocalNote), {overwrite: false});
   await vscode.workspace.applyEdit(workspaceEdit);
-  const document = await vscode.workspace.openTextDocument(newProjectNote);
+  const document = await vscode.workspace.openTextDocument(newLocalNote);
   vscode.window.showTextDocument(document, {preview: false});
 
 };
 
 
 //  ╭──────────────────────────────────────────────────────────────────────────────╮
-//  │                       ● Function previewProjectNote ●                        │
+//  │                        ● Function previewLocalNote ●                         │
 //  │                                                                              │
-//  │                    • Open Project Note in Preview Mode •                     │
+//  │                     • Open Local Note in Preview Mode •                      │
 //  ╰──────────────────────────────────────────────────────────────────────────────╯
-async function previewProjectNote() {
+async function previewLocalNote() {
 
   const pathToNote = vscode.Uri.file(arguments[0].fsPath);
   await vscode.commands.executeCommand('markdown.showPreview', pathToNote);
@@ -303,13 +326,13 @@ async function previewProjectNote() {
 
 
 //  ╭──────────────────────────────────────────────────────────────────────────────╮
-//  │                        ● Function renameProjectNote ●                        │
+//  │                         ● Function renameLocalNote ●                         │
 //  │                                                                              │
-//  │                           • Rename Project Note •                            │
+//  │                            • Rename Local Note •                             │
 //  ╰──────────────────────────────────────────────────────────────────────────────╯
-async function renameProjectNote() {
+async function renameLocalNote() {
 
-  // renameProjectNote - Prompt user for new name 
+  // renameLocalNote - Prompt user for new name 
   let fileName = await vscode.window.showInputBox({
       placeHolder: "Enter new project note name (Extension .md is not required)",
       prompt: "Rename Project Note: ",
@@ -320,31 +343,31 @@ async function renameProjectNote() {
   }
   let parts = fileName.split(".");
   fileName = parts[0]+'.md';
-  let newProjectNote = vscode.workspace.workspaceFolders[0].uri.fsPath+path.sep+localNotesFolder+path.sep+fileName;
+  let newLocalNote = path.join(thisProjectsNotesFolder, path.sep, fileName);
   
-  // renameProjectNote - Perform Rename 
+  // renameLocalNote - Perform Rename 
   const workspaceEdit = new vscode.WorkspaceEdit();
-  workspaceEdit.renameFile(vscode.Uri.file(arguments[0].fsPath),vscode.Uri.file(newProjectNote), {overwrite: false});
+  workspaceEdit.renameFile(vscode.Uri.file(arguments[0].fsPath),vscode.Uri.file(newLocalNote), {overwrite: false});
   await vscode.workspace.applyEdit(workspaceEdit);
 
 };
 
 
 //  ╭──────────────────────────────────────────────────────────────────────────────╮
-//  │                        ● Function deleteProjectNote ●                        │
+//  │                         ● Function deleteLocalNote ●                         │
 //  │                                                                              │
-//  │                           • Delete Project Note •                            │
+//  │                            • Delete Local Note •                             │
 //  ╰──────────────────────────────────────────────────────────────────────────────╯
-async function deleteProjectNote() {
+async function deleteLocalNote() {
 
-  // deleteProjectNote - Prompt user for confirmation 
+  // deleteLocalNote - Prompt user for confirmation 
   let fName = arguments[0].label;
-  const selectedItem = await vscode.window.showWarningMessage('Delete Project Note? '+fName,'Continue','Cancel');
+  const selectedItem = await vscode.window.showWarningMessage('Delete Local Note? '+fName,'Continue','Cancel');
   if ('Continue' !== selectedItem) {
     return;
   }
   
-  // deleteProjectNote - Delete the Project Note 
+  // deleteLocalNote - Delete the Project Note 
   const workspaceEdit = new vscode.WorkspaceEdit();
   workspaceEdit.deleteFile(vscode.Uri.file(arguments[0].fsPath));
   await vscode.workspace.applyEdit(workspaceEdit);
@@ -370,7 +393,7 @@ async function newGlobalNote() {
   }
   let parts = fileName.split(".");
   fileName = parts[0]+'.md';
-  let newGlobalNote = globalNotesFolder + path.sep + fileName;
+  let newGlobalNote = path.join(globalNotesRootFolder, path.sep, fileName);
 
   // newGlobalNote - Create New Global Note and Open for Editing  
   const workspaceEdit = new vscode.WorkspaceEdit();
@@ -413,7 +436,7 @@ async function renameGlobalNote() {
   }
   let parts = fileName.split(".");
   fileName = parts[0]+'.md';
-  let newGlobalNote = globalNotesFolder+path.sep+fileName;
+  let newGlobalNote = path.join(globalNotesRootFolder, path.sep, fileName);
   
   // renameGlobalNote - Perform Rename 
   const workspaceEdit = new vscode.WorkspaceEdit();
@@ -457,42 +480,42 @@ async function openNoteLink() {
   if (!editor) {
       vscode.window.showWarningMessage('Text Editor Not Open!');
       return;
-  }
+  };
 
   // openNoteLink - Get current lines text 
   const lineText = editor.document.lineAt(editor.selection.active.line).text;
-  const projectRegex = new RegExp(/project file: *([A-Za-z0-9_-]+.md)/i);
-  const globalRegex = new RegExp(/global file: *([A-Za-z0-9_-]+.md)/i);
-  let foundProjectNote = projectRegex.test(lineText);
+  const projectRegex = new RegExp(/local file:\s*([\(\)A-Za-z0-9_-]+.md)/i);
+  const globalRegex = new RegExp(/global file:\s*([\(\)A-Za-z0-9_-]+.md)/i);
+  let foundLocalNote = projectRegex.test(lineText);
   let foundGlobalNote = globalRegex.test(lineText);
   let notesFilePath = "";
 
-  // openNoteLink - Get Project Note Filename from comment 
-  if (foundProjectNote) {
+  // openNoteLink - Get Local Note Filename from comment 
+  if (foundLocalNote) {
       let filenameArray = projectRegex.exec(lineText);
       let filename = filenameArray[1];
-      notesFilePath = vscode.workspace.workspaceFolders[0].uri.fsPath+path.sep+localNotesFolder+path.sep+filename;
-  }
+      notesFilePath = path.join(thisProjectsNotesFolder, path.sep, filename);
+  };
 
   // openNoteLink - Get Global Note Filename from comment 
   if (foundGlobalNote) {
       let filenameArray = globalRegex.exec(lineText);
       let filename = filenameArray[1];
-      notesFilePath = globalNotesFolder+path.sep+filename;
-  }
+      notesFilePath = path.join(globalNotesRootFolder, path.sep, filename);
+  };
 
-  // openNoteLink - Open Project Note -or- Global Note Filename.MD if either is found 
+  // openNoteLink - Open Local Note -or- Global Note Filename.MD if either is found 
   if (notesFilePath.length == 0) {
-      vscode.window.showWarningMessage('No Project or Global file link found on this line!');
+      vscode.window.showInformationMessage('No Project or Global file link found on this line');
       return;
-  }
+  };
 
   // openNoteLink - Verfiy file exists, if it does then open it 
   if (fs.existsSync(notesFilePath)) {
-      // File exists in path
-      vscode.workspace.openTextDocument(vscode.Uri.file(notesFilePath)).then(
-          document => vscode.window.showTextDocument(document));
-          return;
+    // File exists in path
+    vscode.workspace.openTextDocument(vscode.Uri.file(notesFilePath)).then(
+      document => vscode.window.showTextDocument(document));
+      return;
   };
 
   // openNoteLink - If it does not exist, then create it 
@@ -514,9 +537,15 @@ async function newTodo() {
 
   // newTodo - Ensure Use Todo File is Enabled in Settings Before Continuing 
   if (!useTodo) {
-    vscode.window.showWarningMessage("Auto create TODO file is disabled in settings, Please enable the setting and try again");
+    vscode.window.showInformationMessage("Auto create TODO file is disabled in settings, please enable the setting and try again");
     return;
-  }
+  };
+
+  // newTodo - Ensure (TODO).md File is Exists Before Continuing 
+  if (!fs.existsSync(path.join(thisProjectsNotesFolder, path.sep, "(TODO).md"))) {
+    vscode.window.showInformationMessage("(TODO).md file does not exist in Local Notes Folder, please enable auto create TODO file in this extensions settings");
+    return;
+  };
 
   // newTodo - Get Local Notes Folder From User 
   let options = {
@@ -534,23 +563,8 @@ async function newTodo() {
   // newTodo - Create New Task String 
   let newTaskText = `- [ ] ${newTask}`;
 
-  // newTodo - Create local notes folder and `Scratchpad.md` and `todo.md` if needed 
-  if (!fs.existsSync(localNotesPath)) {
-    fs.mkdirSync(localNotesPath, { recursive: true });
-    if (useScratchpad) {
-      fs.writeFileSync(localScratchpadFile,"# Scratchpad\n");
-    }
-  };
-  if (!fs.existsSync(localScratchpadFile) && useScratchpad == true) {
-    fs.writeFileSync(localScratchpadFile,"# Scratchpad\n");
-  };
-  if (!fs.existsSync(localTodoFile) && useTodo == true) {
-    fs.writeFileSync(localTodoFile,"# TODO\n");
-  };
-
   // newTodo - Open TODO File 
-  let todoFileData = await readFile(localTodoFile, {'encoding':'utf-8'});
-  //console.log('localTodoFile:', localTodoFile);
+  let todoFileData = await fs.readFileSync(path.join(thisProjectsNotesFolder, path.sep, "(TODO).md"), {'encoding':'utf-8'});
   let newFileData;
   if (todoFileData.endsWith('\n')) {
     newFileData = todoFileData.concat(newTaskText,'\n');
@@ -559,7 +573,9 @@ async function newTodo() {
   };
 
   // newTodo - Write New TODO Task to File 
-  await fs.writeFileSync(localTodoFile, newFileData);
+  await fs.writeFileSync(path.join(thisProjectsNotesFolder, path.sep, "(TODO).md"), newFileData);
+  //LocalOutlineProvider. //new LocalProvider(context, thisProjectsNotesFolder);
+  //LocalProvider.prototype.refresh(); //(path.join(thisProjectsNotesFolder, path.sep, "(TODO).md")); //new LocalProvider(context, thisProjectsNotesFolder);
 
 };
 
@@ -593,7 +609,6 @@ async function addUserIcons() {
   // addUserIcons - Copy New Icons to Global Storage 
   let index = 0;
   iconsRet.forEach(file => {
-    //console.log('Icon:',iconsRes[index].fsPath);
     let dest = path.join(userIconPath,path.basename(iconsRet[index].fsPath));
     fs.copyFileSync(iconsRet[index].fsPath, dest);
     index++;
@@ -635,7 +650,6 @@ async function listUserIcons() {
 
   // listUserIcons - Get Icon Selection From User 
   if (userIcons.length > 0) {
-    //console.log('User Icons',userIcons);
     let optionsUserIcons = {
       placeHolder: "Select Icon to Copy Name to Clipboard (Esc to cancel)",
       title: `---=== Project Notes - Listing Current User Icons ===---`
@@ -706,7 +720,6 @@ async function removeUserIcons() {
     // removeUserIcons - Remove Users Selected Icons 
     for (let index = 0; index < pick.length; index++) {
       let pickedPath = path.join(userIconPath,pick[index]);
-      //console.log('Picked:', pickedPath);
       fs.rmSync(pickedPath);
     };
 

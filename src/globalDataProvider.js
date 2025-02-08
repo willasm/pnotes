@@ -15,15 +15,7 @@ class GlobalNoteDataProvider {
     this.globalNotesFolder = globalNotesFolder;
     this._onDidChangeTreeData = new vscode.EventEmitter();
     this.onDidChangeTreeData = this._onDidChangeTreeData.event;
-    vscode.workspace.onDidRenameFiles(() => this.onRenameFiles());
-//    vscode.workspace.onDidChangeTextDocument(() => this.onDidChangeTextDocument());
-    vscode.workspace.onDidSaveTextDocument((e) => this.onSaveFiles());
-    vscode.workspace.onDidChangeConfiguration(() => {
-      this.globalNotesFolder = vscode.workspace.getConfiguration('pnotes').get('globalNotesFolder');
-      this.refresh();
-    });
     new GlobalDecorationProvider(this);
-
   };
 
   getTreeItem(element) {
@@ -43,21 +35,6 @@ class GlobalNoteDataProvider {
     this._onDidChangeTreeData.fire();
   };
 
-  onRenameFiles() {
-    //console.log('Renamed File...');
-    this.refresh();
-  };
-
-  // onDidChangeTextDocument() {
-  //   console.log('Changed File...');
-  //   this.refresh();
-  // };
-
-  onSaveFiles(e) {
-    //console.log('Saved File...',e);
-    this.refresh();
-  };
-
 //  ╭──────────────────────────────────────────────────────────────────────────────╮
 //  │                  ● Function convertFilesToTreeItemsGlobal ●                  │
 //  │                                                                              │
@@ -67,7 +44,7 @@ class GlobalNoteDataProvider {
 
     let globalFilesList = [];
     //console.log('Converting Global...');
-    // convertFilesToTreeItemsGlobal - Get All Local Project Files 
+    // convertFilesToTreeItemsGlobal - Get All Global Project Files 
     const results = await fs.readdirSync(this.globalNotesFolder, {recursive: true,withFileTypes: true,}).filter(async (file) => {
       // Only interested in files
       if (file.isFile()) {
@@ -75,9 +52,9 @@ class GlobalNoteDataProvider {
         let fileNameLow = path.extname(file.name);
         fileNameLow.toLowerCase();
         if (await fileNameLow.slice(1) == 'md') {
-          let fsPath = path.join(file.path, file.name);
+          let fsPath = path.join(file.parentPath, file.name);
           let base = path.basename(fsPath);
-          let uri = vscode.Uri.file(path.join(file.path, file.name)).path;
+          let uri = vscode.Uri.file(path.join(file.parentPath, file.name)).path;
 
           // convertFilesToTreeItemsGlobal - Get This Files Priority 
           let fileDataPriority = await readFile(fsPath, {'encoding':'utf-8'});
@@ -128,7 +105,6 @@ class GlobalNoteDataProvider {
               };
             });
           };
-//          await new Promise(r => setTimeout(r, 200));
 
           // convertFilesToTreeItemsGlobal - Save All Collected Data to Array 
           globalFilesList.push({
@@ -142,14 +118,10 @@ class GlobalNoteDataProvider {
       };
     });
 
-    // convertFilesToTreeItemsGlobal - Wait for Project Files List Creation to Complete 
-    let safetyValve = 0;
-    while (globalFilesList.length === 0) {
-      await new Promise(r => setTimeout(r, 100));
-      safetyValve++
-      if (safetyValve == 1000) {
-        break;
-      }
+    // convertFilesToTreeItemsGlobal - Wait for Global Files List Creation to Complete 
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    if (globalFilesList.length === 0) {
+      return;
     };
 
     // convertFilesToTreeItemsGlobal - Sort the Project Files List 
@@ -165,6 +137,7 @@ class GlobalNoteDataProvider {
     });
 
     // convertFilesToTreeItemsGlobal - Return the Project Files List to Build Treeview 
+    //console.log("📢Global treeItemsArray: ", treeItemsArray);
     return treeItemsArray;
 
   };
@@ -178,42 +151,24 @@ class GlobalNoteDataProvider {
 //  ╰──────────────────────────────────────────────────────────────────────────────╯
 class GlobalDecorationProvider {
 
-  constructor(projectProvider) {
-    //console.log('projectProvider:', projectProvider);
+  constructor(globalProvider) {
+    //console.log('globalProvider:', globalProvider);
     this.disposables = [];
     this._onDidChangeFileDecorations = new vscode.EventEmitter();
     this.onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
     this.disposables.push(vscode.window.registerFileDecorationProvider(this));
     this.disposables.push(vscode.window.registerFileDecorationProvider(this.onDidChangeFileDecorations));
     //this.handleSaved();
-    this.projectProvider = projectProvider;
+    this.globalProvider = globalProvider;
     this.handleChange();
   }; 
 
   handleChange() {
     const changeDecoration = this._onDidChangeFileDecorations;
-    this.projectProvider.onDidChangeTreeData(function () {
+    this.globalProvider.onDidChangeTreeData(function () {
       changeDecoration.fire();
     });
   };
-
-//   handleSaved() {
-//     vscode.workspace.onDidSaveTextDocument(() => {
-//       // Need delay to allow tree data to refresh first
-//       console.log('Saved Global Decorations...');
-// //      let delay = async () => {await new Promise(r => setTimeout(r, 1000))};
-// //      delay();
-//       this._onDidChangeFileDecorations.fire();
-//     });
-//   };
-
-//   refresh() {
-//     // Need delay to allow tree data to refresh first
-//     console.log('>>> Refreshing Global Decoration Provider...');
-// //    let delay = async () => {await new Promise(r => setTimeout(r, 1000))};
-// //    delay();
-//     this._onDidChangeFileDecorations.fire();
-//   };
 
   async provideFileDecoration(uri) {
     if (uri.scheme === 'bar') {
@@ -224,49 +179,50 @@ class GlobalDecorationProvider {
       };
       let priority = treeItemsDataGlobal[index].priority;
       let label = treeItemsDataGlobal[index].label;
-      const filenameTextColor = new vscode.ThemeColor('pnoteTreeItem.filenameTextColor');
-      const guideTextColor = new vscode.ThemeColor('pnoteTreeItem.guideTextColor');
-      const priorityOneTextColor = new vscode.ThemeColor('pnoteTreeItem.priorityOneTextColor');
-      const priorityTwoTextColor = new vscode.ThemeColor('pnoteTreeItem.priorityTwoTextColor');
-      const priorityThreeTextColor = new vscode.ThemeColor('pnoteTreeItem.priorityThreeTextColor');
-      const priorityFourTextColor = new vscode.ThemeColor('pnoteTreeItem.priorityFourTextColor');
-      const priorityFiveTextColor = new vscode.ThemeColor('pnoteTreeItem.priorityFiveTextColor');
       if (label === '(Project Notes Guide).md') {
         return {
-          color: guideTextColor,  // Treeview filename foreground text color
-          //badge: uri.authority,           // This is the number of keyword tags found in the file
-          //tooltip: "",                    // This has no effect if defined in tree item constructor
-          //propagate: true,                // This did not work for me? Not needed anyways.
+          color: new vscode.ThemeColor('pnoteTreeItem.guideTextColor'), // Treeview filename foreground text color
+          //badge: uri.authority,                                       // This is the number of keyword tags found in the file
+          //tooltip: "",                                                // This has no effect if defined in tree item constructor
+          //propagate: true,                                            // This did not work for me? Not needed anyways.
         };
       } else if (priority === '1') {
         //console.log('Doing Priority One...');
         return {
-          color: priorityOneTextColor,
+          color: new vscode.ThemeColor('pnoteTreeItem.priorityOneTextColor'),
+          badge: "1"
         };
       } else if (priority === '2') {
         //console.log('Doing Priority Two...');
         return {
-          color: priorityTwoTextColor,
+          color: new vscode.ThemeColor('pnoteTreeItem.priorityTwoTextColor'),
+          badge: "2"
         };
       } else if (priority === '3') {
         //console.log('Doing Priority Three...');
         return {
-          color: priorityThreeTextColor,
+          color: new vscode.ThemeColor('pnoteTreeItem.priorityThreeTextColor'),
+          badge: "3"
         };
       } else if (priority === '4') {
         //console.log('Doing Priority Four...');
         return {
-          color: priorityFourTextColor,
+          color: new vscode.ThemeColor('pnoteTreeItem.priorityFourTextColor'),
+          badge: "4"
         };
       } else if (priority === '5') {
         //console.log('Doing Priority Five...');
         return {
-          color: priorityFiveTextColor,
+          color: new vscode.ThemeColor('pnoteTreeItem.priorityFiveTextColor'),
+          badge: "5"
+        };
+      } else if (priority === '0') {
+        //console.log('Global Default Color');
+        return {
+          color: new vscode.ThemeColor('pnoteTreeItem.filenameTextColor'),
         };
       } else {
-        return {
-          color: filenameTextColor,
-        };
+        return undefined;
       };
     };
     return undefined;
@@ -306,7 +262,9 @@ class FileTreeItem {
         command: "vscode.open",
         title: "Open",
 //        command: "markdown.showPreview",
-        title: "Open",
+//        title: "showPreview",
+//        command: "pnotes.previewGlobalNote",
+//        title: "Preview Global Note",
         arguments: [fileData.uri],
       };
     } else {
@@ -372,7 +330,7 @@ function compare(a, b) {
     comparison = -1;
   }
   return comparison;
-}
+};
 
 //  ╭──────────────────────────────────────────────────────────────────────────────╮
 //  │                              ● Export modules ●                              │

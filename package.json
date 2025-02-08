@@ -1,39 +1,38 @@
 {
   "name": "pnotes",
-  "displayName": "Project Notes",
-  "description": "Project Notes for Visual Studio Code",
-  "version": "2.0.2",
-  "author": {
-    "name": "William McKeever",
-    "email": "willmck63@gmail.com"
-  },
+  "displayName": "pnotes",
+  "description": "Project Notes Rebuild",
+  "version": "2.1.0",
+  "author": "William McKeever <willmck63@gmail.com>",
   "publisher": "willasm",
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.1"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/willasm/pnotes"
+  },
+  "bugs": {
+    "url": "https://github.com/willasm/pnotes/issues",
+    "email": "willmck63@gmail.com"
+  },
+  "homepage": "https://github.com/willasm/pnotes#readme",
   "main": "src/extension.js",
   "icon": "images/icon.png",
   "keywords": [
-		"todo",
-		"notes",
-		"highlighter",
-		"comments",
-		"project",
-		"markdown",
-		"tasks",
-		"organize"
+    "Add",
+    "Keywords",
+    "Here"
   ],
   "categories": [
-    "Other",
-    "Visualization",
-		"Formatters",
     "Snippets",
-    "Notebooks",
-    "Education"
+    "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "workspaceFolderCount > 0",
+    "workspaceContains: **/*"
   ],
   "contributes": {
     "colors": [
@@ -120,293 +119,279 @@
       }
     ],
     "commands": [
-			{
-				"command": "pnotes.newProjectNote",
-				"title": "New Project Note",
-				"category": "ProjectNotes",
-				"icon": "$(new-file)"
-			},
-			{
-				"command": "pnotes.renameProjectNote",
-				"title": "Rename Project Note",
-				"category": "ProjectNotes",
-				"icon": "$(edit)"
-			},
-			{
-				"command": "pnotes.previewProjectNote",
-				"title": "Preview Project Note",
-				"category": "ProjectNotes",
-				"icon": "$(open-preview)"
-			},
-			{
-				"command": "pnotes.deleteProjectNote",
-				"title": "Delete Project Note",
-				"category": "ProjectNotes",
-				"icon": "$(trash)"
-			},
-			{
-				"command": "pnotes.newGlobalNote",
-				"title": "New Global Note",
-				"category": "GlobalNotes",
-				"icon": "$(new-file)"
-			},
-			{
-				"command": "pnotes.renameGlobalNote",
-				"title": "Rename Global Note",
-				"category": "GlobalNotes",
-				"icon": "$(edit)"
-			},
-			{
-				"command": "pnotes.previewGlobalNote",
-				"title": "Preview Global Note",
-				"category": "GlobalNotes",
-				"icon": "$(open-preview)"
-			},
-			{
-				"command": "pnotes.deleteGlobalNote",
-				"title": "Delete Global Note",
-				"category": "GlobalNotes",
-				"icon": "$(trash)"
-			},
-			{
-				"command": "pnotes.openNoteLink",
-				"title": "Project Notes: Open Note File Link"
-			},
-			{
-				"command": "pnotes.setNotesGlobalFolder",
-				"title": "Project Notes: Set Global Notes Folder Location"
-			},
-			{
-				"command": "pnotes.setNotesLocalFolder",
-				"title": "Project Notes: Set Local Notes Folder Name"
-			},
-			{
-				"command": "pnotes.newTodo",
-				"title": "Project Notes: Create New TODO Task"
-			},
-			{
-				"command": "pnotes.addUserIcons",
-				"title": "Project Notes: Add New User Icons"
-			},
-			{
-				"command": "pnotes.listUserIcons",
-				"title": "Project Notes: List Current User Icons"
-			},
-			{
-				"command": "pnotes.removeUserIcons",
-				"title": "Project Notes: Remove User Icons"
-			}
-		],
-		"viewsContainers": {
-			"activitybar": [
-				{
-					"id": "pnotes-container",
-					"title": "Project Notes",
-					"icon": "images/project-notes.svg"
-				}
-			]
-		},
-		"views": {
-			"pnotes-container": [
-				{
-					"id": "projectNotesTreeview",
-					"name": "Project Notes"
-				},
-				{
-					"id": "globalNotesTreeview",
-					"name": "Global Notes"
-				}
-			]
-		},
-		"viewsWelcome": [
-			{
-				"view": "projectNotesTreeview",
-				"contents": "No Project Notes found\n[Create a New Project Note](command:pnotes.newProjectNote)"
-			},
-			{
-				"view": "globalNotesTreeview",
-				"contents": "No Global Notes found\n[Create a New Global Note](command:pnotes.newGlobalNote)"
-			}
-		],
-		"menus": {
-			"commandPalette": [
-				{
-					"command": "pnotes.newProjectNote",
-					"when": "false"
-				},
-				{
-					"command": "pnotes.renameProjectNote",
-					"when": "false"
-				},
-				{
-					"command": "pnotes.previewProjectNote",
-					"when": "false"
-				},
-				{
-					"command": "pnotes.deleteProjectNote",
-					"when": "false"
-				},
-				{
-					"command": "pnotes.newGlobalNote",
-					"when": "false"
-				},
-				{
-					"command": "pnotes.renameGlobalNote",
-					"when": "false"
-				},
-				{
-					"command": "pnotes.previewGlobalNote",
-					"when": "false"
-				},
-				{
-					"command": "pnotes.deleteGlobalNote",
-					"when": "false"
-				}
-			],
-			"view/title": [
-				{
-					"command": "pnotes.newProjectNote",
-					"when": "view == projectNotesTreeview",
-					"group": "navigation"
-				},
-				{
-					"command": "pnotes.newGlobalNote",
-					"when": "view == globalNotesTreeview",
-					"group": "navigation"
-				}
-			],
-			"view/item/context": [
-				{
-					"command": "pnotes.previewProjectNote",
-					"when": "view == projectNotesTreeview",
-					"group": "inline"
-				},
-				{
-					"command": "pnotes.renameProjectNote",
-					"when": "view == projectNotesTreeview",
-					"group": "inline"
-				},
-				{
-					"command": "pnotes.deleteProjectNote",
-					"when": "view == projectNotesTreeview",
-					"group": "inline"
-				},
-				{
-					"command": "pnotes.previewGlobalNote",
-					"when": "view == globalNotesTreeview",
-					"group": "inline"
-				},
-				{
-					"command": "pnotes.renameGlobalNote",
-					"when": "view == globalNotesTreeview",
-					"group": "inline"
-				},
-				{
-					"command": "pnotes.deleteGlobalNote",
-					"when": "view == globalNotesTreeview",
-					"group": "inline"
-				}
-			]
-		},
+      {
+        "command": "pnotes.refreshLocal",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "pnotes.refreshGlobal",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "pnotes.newLocalNote",
+        "title": "New Project Note",
+        "category": "LocalNotes",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "pnotes.renameLocalNote",
+        "title": "Rename Project Note",
+        "category": "LocalNotes",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "pnotes.previewLocalNote",
+        "title": "Preview Project Note",
+        "category": "LocalNotes",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "pnotes.deleteLocalNote",
+        "title": "Delete Local Note",
+        "category": "LocalNotes",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "pnotes.newGlobalNote",
+        "title": "New Global Note",
+        "category": "GlobalNotes",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "pnotes.renameGlobalNote",
+        "title": "Rename Global Note",
+        "category": "GlobalNotes",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "pnotes.previewGlobalNote",
+        "title": "Preview Global Note",
+        "category": "GlobalNotes",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "pnotes.deleteGlobalNote",
+        "title": "Delete Global Note",
+        "category": "GlobalNotes",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "pnotes.setNotesRootFolder",
+        "title": "Project Notes: Set Global and Local Notes Folder Location"
+      },
+      {
+        "command": "pnotes.newTodo",
+        "title": "Project Notes: Create New TODO Task"
+      },
+      {
+        "command": "pnotes.openNoteLink",
+        "title": "Project Notes: Open Note File Link"
+      },
+      {
+        "command": "pnotes.addUserIcons",
+        "title": "Project Notes: Add New User Icons"
+      },
+      {
+        "command": "pnotes.listUserIcons",
+        "title": "Project Notes: List Current User Icons"
+      },
+      {
+        "command": "pnotes.removeUserIcons",
+        "title": "Project Notes: Remove User Icons"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pnotes-container",
+          "title": "Project Notes",
+          "icon": "images/project-notes.svg"
+        }
+      ]
+    },
+    "views": {
+      "pnotes-container": [
+        {
+          "id": "localNotesTreeview",
+          "name": "Local Notes"
+        },
+        {
+          "id": "globalNotesTreeview",
+          "name": "Global Notes"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "localNotesTreeview",
+        "contents": "No Local Notes found\n[Create a New Local Note](command:pnotes.newLocalNote)"
+      },
+      {
+        "view": "globalNotesTreeview",
+        "contents": "No Global Notes found\n[Create a New Global Note](command:pnotes.newGlobalNote)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "pnotes.newLocalNote",
+          "when": "false"
+        },
+        {
+          "command": "pnotes.renameLocalNote",
+          "when": "false"
+        },
+        {
+          "command": "pnotes.previewLocalNote",
+          "when": "false"
+        },
+        {
+          "command": "pnotes.deleteLocalNote",
+          "when": "false"
+        },
+        {
+          "command": "pnotes.newGlobalNote",
+          "when": "false"
+        },
+        {
+          "command": "pnotes.renameGlobalNote",
+          "when": "false"
+        },
+        {
+          "command": "pnotes.previewGlobalNote",
+          "when": "false"
+        },
+        {
+          "command": "pnotes.deleteGlobalNote",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "pnotes.newLocalNote",
+          "when": "view == localNotesTreeview",
+          "group": "navigation"
+        },
+        {
+          "command": "pnotes.newGlobalNote",
+          "when": "view == globalNotesTreeview",
+          "group": "navigation"
+        },
+        {
+          "command": "pnotes.refreshLocal",
+          "when": "view == localNotesTreeview",
+          "group": "navigation"
+        },
+        {
+          "command": "pnotes.refreshGlobal",
+          "when": "view == globalNotesTreeview",
+          "group": "navigation"
+        }
+    ],
+      "view/item/context": [
+        {
+          "command": "pnotes.previewLocalNote",
+          "when": "view == localNotesTreeview",
+          "group": "inline"
+        },
+        {
+          "command": "pnotes.renameLocalNote",
+          "when": "view == localNotesTreeview",
+          "group": "inline"
+        },
+        {
+          "command": "pnotes.deleteLocalNote",
+          "when": "view == localNotesTreeview",
+          "group": "inline"
+        },
+        {
+          "command": "pnotes.previewGlobalNote",
+          "when": "view == globalNotesTreeview",
+          "group": "inline"
+        },
+        {
+          "command": "pnotes.renameGlobalNote",
+          "when": "view == globalNotesTreeview",
+          "group": "inline"
+        },
+        {
+          "command": "pnotes.deleteGlobalNote",
+          "when": "view == globalNotesTreeview",
+          "group": "inline"
+        }
+      ]
+    },
     "snippets": [
       {
         "path": "./src/snippets.json.code-snippets"
       }
     ],
-		"configuration": [
-			{
-				"type": "object",
-				"title": "Project Notes",
-				"properties": {
-					"pnotes.localNotesFolder": {
-						"type": "string",
-						"default": ".pnotes",
-            "order": 0,
-						"description": "Folder Name for Local Notes"
-					}
-				}
-			},
-			{
-				"type": "object",
-				"title": "Project Notes",
-				"properties": {
-					"pnotes.globalNotesFolder": {
-						"type": "string",
-						"default": "",
+    "configuration": [
+      {
+        "type": "object",
+        "title": "Project Notes",
+        "properties": {
+          "pnotes.projectNotesFolderLocation": {
+            "type": "string",
+            "default": "",
             "order": 1,
-						"description": "Folder Location for Global Notes"
-					}
-				}
-			},
-			{
-				"type": "object",
-				"title": "Project Notes",
-				"properties": {
-					"pnotes.autoCreateScratchpadLocalProjectNote": {
-						"type": "boolean",
-						"default": true,
+            "description": "Folder Location for All Global and Project Notes"
+          }
+        }
+      },
+      {
+        "type": "object",
+        "title": "Project Notes",
+        "properties": {
+          "pnotes.autoCreateScratchpadLocalProjectNote": {
+            "type": "boolean",
+            "default": true,
             "order": 2,
-						"markdownDescription": "Create a Local Project Note `(Scratchpad).md` File"
-					}
-				}
-			},
-			{
-				"type": "object",
-				"title": "Project Notes",
-				"properties": {
-					"pnotes.autoCreateTodoLocalProjectNote": {
-						"type": "boolean",
-						"default": true,
+            "markdownDescription": "Create a Local Project Note `(Scratchpad).md` File"
+          }
+        }
+      },
+      {
+        "type": "object",
+        "title": "Project Notes",
+        "properties": {
+          "pnotes.autoCreateTodoLocalProjectNote": {
+            "type": "boolean",
+            "default": true,
             "order": 3,
-						"markdownDescription": "Create a Local Project Note `(TODO).md` File"
-					}
-				}
-			},
-			{
-				"type": "object",
-				"title": "Project Notes",
-				"properties": {
-					"pnotes.createGlobalProjectNotesGuideFile": {
-						"type": "boolean",
-						"default": true,
+            "markdownDescription": "Create a Local Project Note `(TODO).md` File"
+          }
+        }
+      },
+      {
+        "type": "object",
+        "title": "Project Notes",
+        "properties": {
+          "pnotes.createGlobalProjectNotesGuideFile": {
+            "type": "boolean",
+            "default": true,
             "order": 4,
-						"markdownDescription": "Create Global Note `(Project Notes Guide).md` File"
-					}
-				}
-			},
-			{
-				"type": "object",
-				"title": "Project Notes",
-				"properties": {
-					"pnotes.addLocalProjectsNoteFolderToGitIgnoreFile": {
-						"type": "boolean",
-						"default": true,
+            "markdownDescription": "Create Global Note `(Project Notes Guide).md` File"
+          }
+        }
+      },
+      {
+        "type": "object",
+        "title": "Project Notes",
+        "properties": {
+          "pnotes.promptMoveLocalNotes": {
+            "type": "boolean",
+            "default": true,
             "order": 5,
-						"markdownDescription": "Add Local Projects Note Folder to `.gitignore` File (If Found)"
-					}
-				}
-			},
-			{
-				"type": "object",
-				"title": "Project Notes",
-				"properties": {
-					"pnotes.createGitIgnoreFileIfNotFound": {
-						"type": "boolean",
-						"default": true,
-            "order": 6,
-						"markdownDescription": "Create `.gitignore` File (If Not Found)"
-					}
-				}
-			}
+            "markdownDescription": "Prompt for Moving Local Notes From Old Location to New Local Notes Location"
+          }
+        }
+      }
     ]
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/willasm/pnotes.git"
-  },
-  "bugs": {
-    "url": "https://github.com/willasm/pnotes/issues",
-    "email": "willmck63@gmail.com"
-  },
-  "homepage": "https://github.com/willasm/pnotes#readme"
+  "dependencies": {
+    "fs-extra": "^11.3.0"
+  }
 }
