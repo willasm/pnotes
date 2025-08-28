@@ -215,11 +215,13 @@
       "pnotes-container": [
         {
           "id": "localNotesTreeview",
-          "name": "Local Notes"
+          "name": "Local Notes",
+          "icon": "images/project-notes.svg"
         },
         {
           "id": "globalNotesTreeview",
-          "name": "Global Notes"
+          "name": "Global Notes",
+          "icon": "images/project-notes.svg"
         }
       ]
     },

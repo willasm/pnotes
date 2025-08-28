@@ -2,6 +2,16 @@
 
 <!-- ## [v-inc] ${YEAR4}-${MONTHNUMBER}-${DATE} -->
 
+## [2.1.2] 2025-08-27
+### Added
+Global and Local note filenames can contain the period character (as requested)
+
+### Fixed
+- Image link in `LocalNotesHaveMoved.md`
+
+### Removed
+- Unnecessary console.log()'s
+
 ## [2.1.1] 2025-02-07
 ### Fixed
 - Unintentionally removed the required `node_modules` folder in `.vscodeignore` which broke the extension

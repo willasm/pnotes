@@ -152,18 +152,6 @@ async function activate(context) {
     };
   };
 
-// console.log("projectsOldPnotesFolder: ", projectsOldPnotesFolder);
-// console.log("globalNotesTipsFile", globalNotesTipsFile);
-// console.log("localTodoFile", localTodoFile);
-// console.log("localScratchpadFile", localScratchpadFile);
-// console.log('------------------------------------------');
-// console.log("allProjectNotesLocation", allProjectNotesLocation);
-// console.log("allProjectNotesFolder", allProjectNotesFolder);
-// console.log("localNotesRootFolder", localNotesRootFolder);
-// console.log("globalNotesRootFolder", globalNotesRootFolder);
-// console.log("thisProjectsNotesFolder", thisProjectsNotesFolder);
-// console.log("thisProjectsNotesFolderName", thisProjectsNotesFolderName);
-
   // activate - Remove Older Unused Settings 
   // Old Project Notes Settings
   oldSettings.update("globalNotesFolder", undefined, true);
@@ -484,8 +472,8 @@ async function openNoteLink() {
 
   // openNoteLink - Get current lines text 
   const lineText = editor.document.lineAt(editor.selection.active.line).text;
-  const projectRegex = new RegExp(/local file:\s*([\(\)A-Za-z0-9_-]+.md)/i);
-  const globalRegex = new RegExp(/global file:\s*([\(\)A-Za-z0-9_-]+.md)/i);
+  const projectRegex = new RegExp(/local file:\s*([\(\)\.A-Za-z0-9_-]+.md)/i);
+  const globalRegex = new RegExp(/global file:\s*([\(\)\.A-Za-z0-9_-]+.md)/i);
   let foundLocalNote = projectRegex.test(lineText);
   let foundGlobalNote = globalRegex.test(lineText);
   let notesFilePath = "";

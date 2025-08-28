@@ -11,7 +11,10 @@
 
 <!-- ## [v-inc] ${YEAR4}-${MONTHNUMBER}-${DATE} -->
 
-## [2.1.3] 2025-02-07
+## [2.1.2] 2025-08-27
+### Added
+Global and Local note filenames can contain the period character (as requested)
+
 ### Fixed
 - Image link in `LocalNotesHaveMoved.md`
 
