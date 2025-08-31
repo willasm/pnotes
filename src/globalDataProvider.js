@@ -29,23 +29,23 @@ class GlobalNoteDataProvider {
       return this.convertFilesToTreeItemsGlobal();
     };
   };
-  
+
   refresh() {
     //console.log("Refreshing Global Data Provider...");
     this._onDidChangeTreeData.fire();
   };
 
-//  ╭──────────────────────────────────────────────────────────────────────────────╮
-//  │                  ● Function convertFilesToTreeItemsGlobal ●                  │
-//  │                                                                              │
-//  │                • Creates the Treeviews List of Global Notes •                │
-//  ╰──────────────────────────────────────────────────────────────────────────────╯
+  //  ╭──────────────────────────────────────────────────────────────────────────────╮
+  //  │                  ● Function convertFilesToTreeItemsGlobal ●                  │
+  //  │                                                                              │
+  //  │                • Creates the Treeviews List of Global Notes •                │
+  //  ╰──────────────────────────────────────────────────────────────────────────────╯
   async convertFilesToTreeItemsGlobal() {
 
     let globalFilesList = [];
     //console.log('Converting Global...');
     // convertFilesToTreeItemsGlobal - Get All Global Project Files 
-    const results = await fs.readdirSync(this.globalNotesFolder, {recursive: true,withFileTypes: true,}).filter(async (file) => {
+    const results = await fs.readdirSync(this.globalNotesFolder, { recursive: true, withFileTypes: true, }).filter(async (file) => {
       // Only interested in files
       if (file.isFile()) {
         // Only want Markdown files
@@ -57,7 +57,7 @@ class GlobalNoteDataProvider {
           let uri = vscode.Uri.file(path.join(file.parentPath, file.name)).path;
 
           // convertFilesToTreeItemsGlobal - Get This Files Priority 
-          let fileDataPriority = await readFile(fsPath, {'encoding':'utf-8'});
+          let fileDataPriority = await readFile(fsPath, { 'encoding': 'utf-8' });
           const yamlRegex = new RegExp(/---.+---/s);
           let yamlText = yamlRegex.exec(fileDataPriority);
           let priority = '0';
@@ -81,7 +81,7 @@ class GlobalNoteDataProvider {
             } else {
               iconFile = iconText[1];
             };
-//            console.log('iconFile:', iconFile);
+            //            console.log('iconFile:', iconFile);
           };
 
           // convertFilesToTreeItemsGlobal - Handle Other YAML Here 
@@ -89,13 +89,13 @@ class GlobalNoteDataProvider {
 
           // convertFilesToTreeItemsGlobal - Get User Icons From Global Storage 
           globalStoragePath = this.context.globalStorageUri.fsPath;
-          userIconPath = path.join(globalStoragePath,'userIcons');
+          userIconPath = path.join(globalStoragePath, 'userIcons');
           userIcons = [];
           // Create user icon path if it does not exist
           if (!fs.existsSync(userIconPath)) {
             await fs.mkdirSync(userIconPath, { recursive: true });
           } else {
-            const results = await fs.readdirSync(userIconPath, {recursive: true,withFileTypes: true,}).filter(async (file) => {
+            const results = await fs.readdirSync(userIconPath, { recursive: true, withFileTypes: true, }).filter(async (file) => {
               if (file.isFile()) {
                 let fileNameLow = path.extname(file.name);
                 fileNameLow.toLowerCase();
@@ -161,7 +161,7 @@ class GlobalDecorationProvider {
     //this.handleSaved();
     this.globalProvider = globalProvider;
     this.handleChange();
-  }; 
+  };
 
   handleChange() {
     const changeDecoration = this._onDidChangeFileDecorations;
@@ -175,7 +175,7 @@ class GlobalDecorationProvider {
       let labelSearch = uri.authority;
       let index = 0;
       while (labelSearch != treeItemsDataGlobal[index].label) {
-        index++
+        index++;
       };
       let priority = treeItemsDataGlobal[index].priority;
       let label = treeItemsDataGlobal[index].label;
@@ -257,14 +257,14 @@ class FileTreeItem {
     this.priority = fileData.priority;
     this.iconFile = fileData.iconFile;
     if (fileData.fileName === '(Project Notes Guide).md') {
-      this.tooltip = `This is a quick guide for the "Project Notes" extension\nIt is ok to delete this if you no longer wish to see it\n\nFile Location...\n${this.fsPath}`
+      this.tooltip = `This is a quick guide for the "Project Notes" extension\nIt is ok to delete this if you no longer wish to see it\n\nFile Location...\n${this.fsPath}`;
       this.command = {
         command: "vscode.open",
         title: "Open",
-//        command: "markdown.showPreview",
-//        title: "showPreview",
-//        command: "pnotes.previewGlobalNote",
-//        title: "Preview Global Note",
+        //        command: "markdown.showPreview",
+        //        title: "showPreview",
+        //        command: "pnotes.previewGlobalNote",
+        //        title: "Preview Global Note",
         arguments: [fileData.uri],
       };
     } else {
@@ -276,12 +276,12 @@ class FileTreeItem {
       };
     };
     if (userIcons.indexOf(this.iconFile) > -1) {
-//      console.log('found it',this.iconFile);
-      this.iconPath = path.join(userIconPath, this.iconFile)
+      //      console.log('found it',this.iconFile);
+      this.iconPath = path.join(userIconPath, this.iconFile);
     } else {
       this.iconPath = treeItemIcon(this.label, this.priority);
     };
-//      this.iconPath = treeItemIcon(this.label, this.priority);
+    //      this.iconPath = treeItemIcon(this.label, this.priority);
     // Pass Data to FileDecorator
     this.resourceUri = vscode.Uri.parse(`bar://${fileData.fileName}`);
   };
@@ -298,15 +298,15 @@ function treeItemIcon(fname, priority) {
   fname = fname.toLowerCase();
   if (fname === '(project notes guide).md') {
     return path.join(__filename, '..', '..', 'images', 'icons', 'information.svg');
-  } else if (priority === '1') { 
+  } else if (priority === '1') {
     return path.join(__filename, '..', '..', 'images', 'icons', 'p1-red-circle.svg');
-  } else if (priority === '2') { 
+  } else if (priority === '2') {
     return path.join(__filename, '..', '..', 'images', 'icons', 'p2-orange-circle.svg');
-  } else if (priority === '3') { 
+  } else if (priority === '3') {
     return path.join(__filename, '..', '..', 'images', 'icons', 'p3-yellow-circle.svg');
-  } else if (priority === '4') { 
+  } else if (priority === '4') {
     return path.join(__filename, '..', '..', 'images', 'icons', 'p4-green-circle.svg');
-  } else if (priority === '5') { 
+  } else if (priority === '5') {
     return path.join(__filename, '..', '..', 'images', 'icons', 'p5-blue-circle.svg');
   } else {
     return path.join(__filename, '..', '..', 'images', 'icons', 'blank.svg');

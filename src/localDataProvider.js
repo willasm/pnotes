@@ -29,23 +29,23 @@ class LocalNoteDataProvider {
       return this.convertFilesToTreeItemsLocal();
     };
   };
-  
+
   refresh() {
     //console.log("Refreshing Local Data Provider...");
     this._onDidChangeTreeData.fire();
-   };
+  };
 
-//  ╭──────────────────────────────────────────────────────────────────────────────╮
-//  │                  ● Function convertFilesToTreeItemsLocal ●                   │
-//  │                                                                              │
-//  │                • Creates the Treeviews List of Local Notes •                 │
-//  ╰──────────────────────────────────────────────────────────────────────────────╯
+  //  ╭──────────────────────────────────────────────────────────────────────────────╮
+  //  │                  ● Function convertFilesToTreeItemsLocal ●                   │
+  //  │                                                                              │
+  //  │                • Creates the Treeviews List of Local Notes •                 │
+  //  ╰──────────────────────────────────────────────────────────────────────────────╯
   async convertFilesToTreeItemsLocal() {
 
     let localFilesList = [];
     //console.log('Converting Local...');
     // convertFilesToTreeItemsLocal - Get All Local Project Files 
-    const results = await fs.readdirSync(this.localNotesFolder, {recursive: true,withFileTypes: true,}).filter(async (file) => {
+    const results = await fs.readdirSync(this.localNotesFolder, { recursive: true, withFileTypes: true, }).filter(async (file) => {
       // Only interested in files
       if (file.isFile()) {
         // Only want Markdown files
@@ -64,7 +64,7 @@ class LocalNoteDataProvider {
           let tasksIncompleted = 0;
           let tasksIncompletedStr = '0';
           if (await file.name === '(TODO).md') {
-            let fileDataTodo = await readFile(fsPath, {'encoding':'utf-8'});
+            let fileDataTodo = await readFile(fsPath, { 'encoding': 'utf-8' });
             const taskIncompletedRegex = new RegExp(/-\s+\[ \]/g);
             while (await taskIncompletedRegex.exec(fileDataTodo)) {
               tasksCount++;
@@ -81,7 +81,7 @@ class LocalNoteDataProvider {
           };
 
           // convertFilesToTreeItemsLocal - Get This Files Priority 
-          let fileDataPriority = await readFile(fsPath, {'encoding':'utf-8'});
+          let fileDataPriority = await readFile(fsPath, { 'encoding': 'utf-8' });
           const yamlRegex = new RegExp(/---.+---/s);
           let yamlText = yamlRegex.exec(fileDataPriority);
           let priority = '0';
@@ -112,13 +112,13 @@ class LocalNoteDataProvider {
 
           // convertFilesToTreeItemsLocal - Get User Icons From Global Storage 
           globalStoragePath = this.context.globalStorageUri.fsPath;
-          userIconPath = path.join(globalStoragePath,'userIcons');
+          userIconPath = path.join(globalStoragePath, 'userIcons');
           userIcons = [];
           // Create user icon path if it does not exist
           if (await !fs.existsSync(userIconPath)) {
             await fs.mkdirSync(userIconPath, { recursive: true });
           } else {
-            const results = await fs.readdirSync(userIconPath, {recursive: true,withFileTypes: true,}).filter(async (file) => {
+            const results = await fs.readdirSync(userIconPath, { recursive: true, withFileTypes: true, }).filter(async (file) => {
               if (file.isFile()) {
                 let fileNameLow = path.extname(file.name);
                 fileNameLow.toLowerCase();
@@ -186,7 +186,7 @@ class LocalDecorationProvider {
     this.disposables.push(vscode.window.registerFileDecorationProvider(this.onDidChangeFileDecorations));
     this.localProvider = localProvider;
     this.handleChange();
-  }; 
+  };
 
   handleChange() {
     const changeDecoration = this._onDidChangeFileDecorations;
@@ -201,7 +201,7 @@ class LocalDecorationProvider {
       let labelSearch = uri.authority;
       let index = 0;
       while (labelSearch != treeItemsDataLocal[index].label) {
-        index++
+        index++;
       };
       let priority = treeItemsDataLocal[index].priority;
       let badge = treeItemsDataLocal[index].badge;
@@ -217,7 +217,7 @@ class LocalDecorationProvider {
         //console.log("📢badge: ", badge);
         return {
           color: new vscode.ThemeColor('pnoteTreeItem.todoTextColor'),
-          badge: '✔'+badge
+          badge: '✔' + badge
         };
       } else if (priority === '1') {
         //console.log('Doing Priority One...');
@@ -293,16 +293,16 @@ class FileTreeItem {
     this.badge = fileData.tasksCount;
     this.priority = fileData.priority;
     this.iconFile = fileData.iconFile;
-    if (fileData.fileName === '(Scratchpad).md') { 
+    if (fileData.fileName === '(Scratchpad).md') {
       this.tooltip = `${fileData.fileName}\n\nUse for short term quick notes that don't require a permanent note\n\nFile Location...\n${this.fsPath}`;
     } else if (fileData.fileName === '(TODO).md') {
-      this.tooltip = `Total Tasks: ${fileData.tasksCount}\nIncompleted Tasks: ${fileData.tasksIncompleted}\nCompleted Tasks: ${fileData.tasksCompleted}\n\nFile Location...\n${this.fsPath}`
+      this.tooltip = `Total Tasks: ${fileData.tasksCount}\nIncompleted Tasks: ${fileData.tasksIncompleted}\nCompleted Tasks: ${fileData.tasksCompleted}\n\nFile Location...\n${this.fsPath}`;
     } else {
       this.tooltip = `${fileData.fileName}\n\nFile Location...\n${this.fsPath}`;
     };
     if (userIcons.indexOf(this.iconFile) > -1) {
-//      console.log('found it',this.iconFile);
-      this.iconPath = path.join(userIconPath, this.iconFile)
+      //      console.log('found it',this.iconFile);
+      this.iconPath = path.join(userIconPath, this.iconFile);
     } else {
       this.iconPath = treeItemIcon(this.label, this.priority);
     };
@@ -312,8 +312,8 @@ class FileTreeItem {
       arguments: [this.uri]
     };
     if (userIcons.indexOf(this.iconFile) > -1) {
-//      console.log('found it',this.iconFile);
-      this.iconPath = path.join(userIconPath, this.iconFile)
+      //      console.log('found it',this.iconFile);
+      this.iconPath = path.join(userIconPath, this.iconFile);
     } else {
       this.iconPath = treeItemIcon(this.label, this.priority);
     };
@@ -333,17 +333,17 @@ function treeItemIcon(fname, priority) {
   fname = fname.toLowerCase();
   if (fname === '(scratchpad).md') {
     return path.join(__filename, '..', '..', 'images', 'icons', 'scratchpad.svg');
-  } else if (fname === '(todo).md') { 
+  } else if (fname === '(todo).md') {
     return path.join(__filename, '..', '..', 'images', 'icons', 'todo.svg');
-  } else if (priority === '1') { 
+  } else if (priority === '1') {
     return path.join(__filename, '..', '..', 'images', 'icons', 'p1-red-circle.svg');
-  } else if (priority === '2') { 
+  } else if (priority === '2') {
     return path.join(__filename, '..', '..', 'images', 'icons', 'p2-orange-circle.svg');
-  } else if (priority === '3') { 
+  } else if (priority === '3') {
     return path.join(__filename, '..', '..', 'images', 'icons', 'p3-yellow-circle.svg');
-  } else if (priority === '4') { 
+  } else if (priority === '4') {
     return path.join(__filename, '..', '..', 'images', 'icons', 'p4-green-circle.svg');
-  } else if (priority === '5') { 
+  } else if (priority === '5') {
     return path.join(__filename, '..', '..', 'images', 'icons', 'p5-blue-circle.svg');
   } else {
     return path.join(__filename, '..', '..', 'images', 'icons', 'blank.svg');
