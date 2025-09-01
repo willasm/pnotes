@@ -15,6 +15,10 @@ class LocalNoteDataProvider {
     this.localNotesFolder = localNotesFolder;
     this._onDidChangeTreeData = new vscode.EventEmitter();
     this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+    vscode.workspace.onDidCreateFiles(() => this.onCreateFiles());
+    vscode.workspace.onDidDeleteFiles(() => this.onDeleteFiles());
+    vscode.workspace.onDidRenameFiles(() => this.onRenameFiles());
+    vscode.workspace.onDidSaveTextDocument(() => this.onSaveFiles());
     this.decoratorLocal = new LocalDecorationProvider(this);
   };
 
@@ -30,9 +34,31 @@ class LocalNoteDataProvider {
     };
   };
 
-  refresh() {
+  async refreshLocal() {
     //console.log("Refreshing Local Data Provider...");
     this._onDidChangeTreeData.fire();
+    await new Promise(r => setTimeout(r, 500));
+    this.decoratorLocal._onDidChangeFileDecorations.fire();
+  };
+
+  onCreateFiles() {
+    //console.log('Created File...');
+    this.refreshLocal();
+  };
+
+  onDeleteFiles() {
+    //console.log('Deleted File...');
+    this.refreshLocal();
+  };
+
+  onRenameFiles() {
+    //console.log('Renamed File...');
+    this.refreshLocal();
+  };
+
+  onSaveFiles() {
+    //console.log('Saved Local File...');
+    this.refreshLocal();
   };
 
   //  ╭──────────────────────────────────────────────────────────────────────────────╮
@@ -42,9 +68,8 @@ class LocalNoteDataProvider {
   //  ╰──────────────────────────────────────────────────────────────────────────────╯
   async convertFilesToTreeItemsLocal() {
 
-    let localFilesList = [];
-    //console.log('Converting Local...');
     // convertFilesToTreeItemsLocal - Get All Local Project Files 
+    let localFilesList = [];
     const results = await fs.readdirSync(this.localNotesFolder, { recursive: true, withFileTypes: true, }).filter(async (file) => {
       // Only interested in files
       if (file.isFile()) {
@@ -163,7 +188,6 @@ class LocalNoteDataProvider {
     });
 
     // convertFilesToTreeItemsLocal - Return the Local Files List to Build Treeview 
-    //console.log("📢treeItemsArray: ", treeItemsArray);
     return treeItemsArray;
 
   };
@@ -178,22 +202,12 @@ class LocalNoteDataProvider {
 class LocalDecorationProvider {
 
   constructor(localProvider) {
-    //console.log('localProvider:', localProvider);
     this.disposables = [];
     this._onDidChangeFileDecorations = new vscode.EventEmitter();
     this.onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
     this.disposables.push(vscode.window.registerFileDecorationProvider(this));
     this.disposables.push(vscode.window.registerFileDecorationProvider(this.onDidChangeFileDecorations));
     this.localProvider = localProvider;
-    this.handleChange();
-  };
-
-  handleChange() {
-    const changeDecoration = this._onDidChangeFileDecorations;
-    this.localProvider.onDidChangeTreeData(function () {
-      //console.log('Changed Decoration');
-      changeDecoration.fire();
-    });
   };
 
   async provideFileDecoration(uri) {
@@ -217,7 +231,7 @@ class LocalDecorationProvider {
         //console.log("📢badge: ", badge);
         return {
           color: new vscode.ThemeColor('pnoteTreeItem.todoTextColor'),
-          badge: '✔' + badge
+          badge: badge
         };
       } else if (priority === '1') {
         //console.log('Doing Priority One...');
@@ -301,7 +315,6 @@ class FileTreeItem {
       this.tooltip = `${fileData.fileName}\n\nFile Location...\n${this.fsPath}`;
     };
     if (userIcons.indexOf(this.iconFile) > -1) {
-      //      console.log('found it',this.iconFile);
       this.iconPath = path.join(userIconPath, this.iconFile);
     } else {
       this.iconPath = treeItemIcon(this.label, this.priority);
@@ -312,7 +325,6 @@ class FileTreeItem {
       arguments: [this.uri]
     };
     if (userIcons.indexOf(this.iconFile) > -1) {
-      //      console.log('found it',this.iconFile);
       this.iconPath = path.join(userIconPath, this.iconFile);
     } else {
       this.iconPath = treeItemIcon(this.label, this.priority);

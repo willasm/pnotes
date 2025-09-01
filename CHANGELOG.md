@@ -2,6 +2,11 @@
 
 <!-- ## [v-inc] ${YEAR4}-${MONTHNUMBER}-${DATE} -->
 
+## [2.1.3] 2025-09-01
+### Changed
+- Extended Global and Local note filename links to include characters `! @ # $ . space ( ) [ ] { } - +`
+  - Updated my [comment-highlighter extension](https://github.com/willasm/comment-highlighter) to support the new characters
+
 ## [2.1.2] 2025-08-27
 ### Added
 Global and Local note filenames can contain the period character (as requested)

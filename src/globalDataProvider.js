@@ -15,7 +15,11 @@ class GlobalNoteDataProvider {
     this.globalNotesFolder = globalNotesFolder;
     this._onDidChangeTreeData = new vscode.EventEmitter();
     this.onDidChangeTreeData = this._onDidChangeTreeData.event;
-    new GlobalDecorationProvider(this);
+    vscode.workspace.onDidCreateFiles(() => this.onCreateFiles());
+    vscode.workspace.onDidDeleteFiles(() => this.onDeleteFiles());
+    vscode.workspace.onDidRenameFiles(() => this.onRenameFiles());
+    vscode.workspace.onDidSaveTextDocument(() => this.onSaveFiles());
+    this.decoratorGlobal = new GlobalDecorationProvider(this);
   };
 
   getTreeItem(element) {
@@ -30,9 +34,31 @@ class GlobalNoteDataProvider {
     };
   };
 
-  refresh() {
+  async refreshGlobal() {
     //console.log("Refreshing Global Data Provider...");
     this._onDidChangeTreeData.fire();
+    await new Promise(r => setTimeout(r, 500));
+    this.decoratorGlobal._onDidChangeFileDecorations.fire();
+  };
+
+  onCreateFiles() {
+    //console.log('Created File...');
+    this.refreshGlobal();
+  };
+
+  onDeleteFiles() {
+    //console.log('Deleted File...');
+    this.refreshGlobal();
+  };
+
+  onRenameFiles() {
+    //console.log('Renamed File...');
+    this.refreshGlobal();
+  };
+
+  onSaveFiles() {
+    //console.log('Saved Global File...');
+    this.refreshGlobal();
   };
 
   //  ╭──────────────────────────────────────────────────────────────────────────────╮
@@ -42,9 +68,8 @@ class GlobalNoteDataProvider {
   //  ╰──────────────────────────────────────────────────────────────────────────────╯
   async convertFilesToTreeItemsGlobal() {
 
-    let globalFilesList = [];
-    //console.log('Converting Global...');
     // convertFilesToTreeItemsGlobal - Get All Global Project Files 
+    let globalFilesList = [];
     const results = await fs.readdirSync(this.globalNotesFolder, { recursive: true, withFileTypes: true, }).filter(async (file) => {
       // Only interested in files
       if (file.isFile()) {
@@ -81,7 +106,6 @@ class GlobalNoteDataProvider {
             } else {
               iconFile = iconText[1];
             };
-            //            console.log('iconFile:', iconFile);
           };
 
           // convertFilesToTreeItemsGlobal - Handle Other YAML Here 
@@ -137,7 +161,6 @@ class GlobalNoteDataProvider {
     });
 
     // convertFilesToTreeItemsGlobal - Return the Project Files List to Build Treeview 
-    //console.log("📢Global treeItemsArray: ", treeItemsArray);
     return treeItemsArray;
 
   };
@@ -152,22 +175,12 @@ class GlobalNoteDataProvider {
 class GlobalDecorationProvider {
 
   constructor(globalProvider) {
-    //console.log('globalProvider:', globalProvider);
     this.disposables = [];
     this._onDidChangeFileDecorations = new vscode.EventEmitter();
     this.onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
     this.disposables.push(vscode.window.registerFileDecorationProvider(this));
     this.disposables.push(vscode.window.registerFileDecorationProvider(this.onDidChangeFileDecorations));
-    //this.handleSaved();
     this.globalProvider = globalProvider;
-    this.handleChange();
-  };
-
-  handleChange() {
-    const changeDecoration = this._onDidChangeFileDecorations;
-    this.globalProvider.onDidChangeTreeData(function () {
-      changeDecoration.fire();
-    });
   };
 
   async provideFileDecoration(uri) {
@@ -276,7 +289,6 @@ class FileTreeItem {
       };
     };
     if (userIcons.indexOf(this.iconFile) > -1) {
-      //      console.log('found it',this.iconFile);
       this.iconPath = path.join(userIconPath, this.iconFile);
     } else {
       this.iconPath = treeItemIcon(this.label, this.priority);

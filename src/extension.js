@@ -24,6 +24,8 @@ let localNotesRootFolder = "";
 let globalNotesRootFolder = "";
 let thisProjectsNotesFolder = "";
 let thisProjectsNotesFolderName = "";
+let NewLocalProvider;
+let NewGlobalProvider;
 
 let myContext;
 
@@ -163,46 +165,44 @@ async function activate(context) {
   settings.update("createGitIgnoreFileIfNotFound", undefined, true);
 
   // activate - Register Local Notes Treeview Data Provider 
-  const LocalOutlineProvider = new LocalProvider(context, thisProjectsNotesFolder);
-  vscode.window.registerTreeDataProvider('localNotesTreeview', LocalOutlineProvider);
+  NewLocalProvider = new LocalProvider(context, thisProjectsNotesFolder);
+  //vscode.window.registerTreeDataProvider('localNotesTreeview', NewLocalProvider);
 
   // activate - Register Global Notes Treeview Data Provider 
-  const GlobalOutlineProvider = new GlobalProvider(context, globalNotesRootFolder);
-  vscode.window.registerTreeDataProvider('globalNotesTreeview', GlobalOutlineProvider);
+  NewGlobalProvider = new GlobalProvider(context, globalNotesRootFolder);
+  //vscode.window.registerTreeDataProvider('globalNotesTreeview', NewGlobalProvider);
+
+  // activate - Create Treeview 
+  let viewLocal = vscode.window.createTreeView("localNotesTreeview", {
+    treeDataProvider: NewLocalProvider,
+  });
+
+  // activate - Create Treeview 
+  let viewGlobal = vscode.window.createTreeView("globalNotesTreeview", {
+    treeDataProvider: NewGlobalProvider,
+  });
 
   // activate - Register Local Notes Refresh Treeview Command 
   vscode.commands.registerCommand("pnotes.refreshLocal", () =>
-    LocalOutlineProvider.refresh()
+    NewLocalProvider.refreshLocal()
   );
 
   // activate - Register Global Notes Refresh Treeview Command 
   vscode.commands.registerCommand("pnotes.refreshGlobal", () =>
-    GlobalOutlineProvider.refresh()
+    NewGlobalProvider.refreshGlobal()
   );
-
-  //   vscode.workspace.onWillSaveTextDocument(async () => {
-  //     console.log('doing');
-  //     await LocalOutlineProvider.refresh();
-  // //    vscode.commands.executeCommand("pnotes.refreshLocal");
-  //   });
-
-  //   vscode.workspace.onDidSaveTextDocument(async () => {
-  //     console.log('done');
-  //     await LocalOutlineProvider.refresh();
-  // //    vscode.commands.executeCommand("pnotes.refreshLocal");
-  //   });
 
   // activate - Create Local Notes folder file watcher 
   const localWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(thisProjectsNotesFolder), '**/*.{md,MD,Md,mD}'));
-  localWatcher.onDidCreate(uri => LocalOutlineProvider.refresh()); // Listen to files/folders being created
-  localWatcher.onDidDelete(uri => LocalOutlineProvider.refresh()); // Listen to files/folders getting deleted
-  localWatcher.onDidChange(uri => LocalOutlineProvider.refresh()); // Listen to files/folders getting saved
+  localWatcher.onDidCreate(uri => NewLocalProvider.refresh()); // Listen to files/folders being created
+  localWatcher.onDidDelete(uri => NewLocalProvider.refresh()); // Listen to files/folders getting deleted
+  localWatcher.onDidChange(uri => NewLocalProvider.refresh()); // Listen to files/folders getting saved
 
   // activate - Create Global Notes folder file watcher 
   const globalWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(globalNotesRootFolder), '**/*.{md,MD,Md,mD}'));
-  globalWatcher.onDidCreate(uri => GlobalOutlineProvider.refresh()); // Listen to files/folders being created
-  globalWatcher.onDidDelete(uri => GlobalOutlineProvider.refresh()); // Listen to files/folders getting deleted
-  globalWatcher.onDidChange(uri => GlobalOutlineProvider.refresh()); // Listen to files/folders getting saved
+  globalWatcher.onDidCreate(uri => NewGlobalProvider.refresh()); // Listen to files/folders being created
+  globalWatcher.onDidDelete(uri => NewGlobalProvider.refresh()); // Listen to files/folders getting deleted
+  globalWatcher.onDidChange(uri => NewGlobalProvider.refresh()); // Listen to files/folders getting saved
 
   // activate - Register Extension Commands 
   vscode.commands.registerCommand('pnotes.setNotesRootFolder', setNotesRootFolder);
@@ -286,8 +286,13 @@ async function newLocalNote() {
   }
 
   // newLocalNote - Get full path to new local note 
-  let parts = fileName.split(".");
-  fileName = parts[0] + '.md';
+  let namePart = "";
+  if (path.extname(fileName).toLowerCase() === ".md") {
+    namePart = fileName.slice(0, fileName.lastIndexOf("."));
+  } else {
+    namePart = fileName;
+  };
+  fileName = namePart + '.md';
   let newLocalNote = path.join(thisProjectsNotesFolder, path.sep, fileName);
 
   // newLocalNote - Create New Project Note and Open for Editing  
@@ -329,8 +334,11 @@ async function renameLocalNote() {
   if (fileName === undefined || fileName === "") {
     return;
   }
-  let parts = fileName.split(".");
-  fileName = parts[0] + '.md';
+
+  // renameLocalNote - Get full path to renamed local note 
+  if (path.extname(fileName).toLowerCase() != ".md") {
+    fileName = fileName + '.md';
+  };
   let newLocalNote = path.join(thisProjectsNotesFolder, path.sep, fileName);
 
   // renameLocalNote - Perform Rename 
@@ -379,8 +387,15 @@ async function newGlobalNote() {
   if (fileName === undefined || fileName === "") {
     return;
   }
-  let parts = fileName.split(".");
-  fileName = parts[0] + '.md';
+
+  // newGlobalNote - Get full path to new global note 
+  let namePart = "";
+  if (path.extname(fileName).toLowerCase() === ".md") {
+    namePart = fileName.slice(0, fileName.lastIndexOf("."));
+  } else {
+    namePart = fileName;
+  };
+  fileName = namePart + '.md';
   let newGlobalNote = path.join(globalNotesRootFolder, path.sep, fileName);
 
   // newGlobalNote - Create New Global Note and Open for Editing  
@@ -422,8 +437,11 @@ async function renameGlobalNote() {
   if (fileName === undefined || fileName === "") {
     return;
   }
-  let parts = fileName.split(".");
-  fileName = parts[0] + '.md';
+
+  // renameGlobalNote - Get full path to renamed global note 
+  if (path.extname(fileName).toLowerCase() != ".md") {
+    fileName = fileName + '.md';
+  };
   let newGlobalNote = path.join(globalNotesRootFolder, path.sep, fileName);
 
   // renameGlobalNote - Perform Rename 
@@ -472,8 +490,10 @@ async function openNoteLink() {
 
   // openNoteLink - Get current lines text 
   const lineText = editor.document.lineAt(editor.selection.active.line).text;
-  const projectRegex = new RegExp(/local file:\s*([\(\)\.A-Za-z0-9_-]+.md)/i);
-  const globalRegex = new RegExp(/global file:\s*([\(\)\.A-Za-z0-9_-]+.md)/i);
+  //  const projectRegex = new RegExp(/local file:\s*([\(\)\.A-Za-z0-9_-]+.md)/i);
+  //  const globalRegex = new RegExp(/global file:\s*([\(\)\.A-Za-z0-9_-]+.md)/i);
+  const projectRegex = new RegExp(/project\s+file:\s*([\w\s\d!@#$\.\(\)\[\]\{\}\-+]+.md)/i);
+  const globalRegex = new RegExp(/global\s+file:\s*([\w\s\d!@#$\.\(\)\[\]\{\}\-+]+.md)/i);
   let foundLocalNote = projectRegex.test(lineText);
   let foundGlobalNote = globalRegex.test(lineText);
   let notesFilePath = "";
@@ -562,8 +582,7 @@ async function newTodo() {
 
   // newTodo - Write New TODO Task to File 
   await fs.writeFileSync(path.join(thisProjectsNotesFolder, path.sep, "(TODO).md"), newFileData);
-  //LocalOutlineProvider. //new LocalProvider(context, thisProjectsNotesFolder);
-  //LocalProvider.prototype.refresh(); //(path.join(thisProjectsNotesFolder, path.sep, "(TODO).md")); //new LocalProvider(context, thisProjectsNotesFolder);
+  vscode.commands.executeCommand("pnotes.refreshLocal");
 
 };
 

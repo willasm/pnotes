@@ -2,7 +2,7 @@
   "name": "pnotes",
   "displayName": "pnotes",
   "description": "Project Notes Rebuild",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "author": "William McKeever <willmck63@gmail.com>",
   "publisher": "willasm",
   "license": "MIT",
@@ -291,7 +291,7 @@
           "when": "view == globalNotesTreeview",
           "group": "navigation"
         }
-    ],
+      ],
       "view/item/context": [
         {
           "command": "pnotes.previewLocalNote",
