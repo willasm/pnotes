@@ -2,6 +2,18 @@
 
 <!-- ## [v-inc] ${YEAR4}-${MONTHNUMBER}-${DATE} -->
 
+## [2.1.4] 2025-09-04
+### Added
+- Warning prompt before moving notes folder
+
+### Changed
+- The settings `Project Notes Folder Location` now includes the `.projectnotes` folder rather than adding it internally
+  - This is all taken care of by the extension (no need for the user to edit anything)
+  - This was done to make it clearer where the notes are stored for those that like to manually edit settings.json
+
+### Updated
+- Readme file now includes more detailed information on the location of your notes
+
 ## [2.1.3] 2025-09-01
 ### Changed
 - Extended Global and Local note filename links to include characters `! @ # $ . space ( ) [ ] { } - +`

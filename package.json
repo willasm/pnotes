@@ -2,7 +2,7 @@
   "name": "pnotes",
   "displayName": "pnotes",
   "description": "Project Notes Rebuild",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "author": "William McKeever <willmck63@gmail.com>",
   "publisher": "willasm",
   "license": "MIT",
@@ -21,18 +21,20 @@
   "main": "src/extension.js",
   "icon": "images/icon.png",
   "keywords": [
-    "Add",
-    "Keywords",
-    "Here"
+    "markdown",
+    "notes",
+    "todo",
+    "scratchpad",
+    "project",
+    "info",
+    "information"
   ],
   "categories": [
     "Snippets",
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished",
-    "workspaceFolderCount > 0",
-    "workspaceContains: **/*"
+    "workspaceFolderCount > 0"
   ],
   "contributes": {
     "colors": [

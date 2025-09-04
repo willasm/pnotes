@@ -17,8 +17,6 @@ let useScratchpad = settings.get("autoCreateScratchpadLocalProjectNote");
 let useTodo = settings.get("autoCreateTodoLocalProjectNote");
 let useGuide = settings.get("createGlobalProjectNotesGuideFile");
 let usePrompt = settings.get("promptMoveLocalNotes");
-//let guideImage = vscode.extensions.getExtension('willasm.pnotes').packageJSON.extensionLocation.fsPath+path.sep+'images'+path.sep+'ProjectNotesSidebar.png';
-let allProjectNotesFolder = "";
 let projectsOldPnotesFolder = "";
 let localNotesRootFolder = "";
 let globalNotesRootFolder = "";
@@ -39,24 +37,27 @@ async function activate(context) {
   myContext = context;                    // Save context
 
   // activate - Get Folders Configuration 
+  // Create default location setting if not defined
   if (allProjectNotesLocation === "" || allProjectNotesLocation === undefined) {
-    allProjectNotesLocation = os.homedir();
-    settings.update("projectNotesFolderLocation", allProjectNotesLocation, true);
-    allProjectNotesFolder = path.join(os.homedir(), path.sep, '.projectnotes');
-    localNotesRootFolder = path.join(allProjectNotesFolder, path.sep, 'projects');
-    globalNotesRootFolder = path.join(allProjectNotesFolder, path.sep, 'global');
+    allProjectNotesLocation = await path.join(os.homedir(), path.sep, ".projectnotes");
+    await settings.update("projectNotesFolderLocation", allProjectNotesLocation, true);
+  };
+  // Need to check for old setting which saved only the users home folder
+  if (!allProjectNotesLocation.endsWith(".projectnotes")) {
+    allProjectNotesLocation = await path.join(allProjectNotesLocation, path.sep, ".projectnotes");
+    await settings.update("projectNotesFolderLocation", allProjectNotesLocation, true);
+  };
+  // Create needed folders if they do not exist
+  if (!fs.existsSync(allProjectNotesLocation)) {
     await fs.mkdirSync(allProjectNotesFolder, (err) => { if (err) throw err; });
+  };
+  localNotesRootFolder = await path.join(allProjectNotesLocation, path.sep, 'projects');
+  globalNotesRootFolder = await path.join(allProjectNotesLocation, path.sep, 'global');
+  if (!fs.existsSync(localNotesRootFolder)) {
     await fs.mkdirSync(localNotesRootFolder, (err) => { if (err) throw err; });
+  };
+  if (!fs.existsSync(globalNotesRootFolder)) {
     await fs.mkdirSync(globalNotesRootFolder, (err) => { if (err) throw err; });
-  } else {
-    allProjectNotesFolder = path.join(allProjectNotesLocation, path.sep, '.projectnotes');
-    localNotesRootFolder = path.join(allProjectNotesFolder, path.sep, 'projects');
-    globalNotesRootFolder = path.join(allProjectNotesFolder, path.sep, 'global');
-    if (!fs.existsSync(allProjectNotesFolder)) {
-      await fs.mkdirSync(allProjectNotesFolder, (err) => { if (err) throw err; });
-      await fs.mkdirSync(localNotesRootFolder, (err) => { if (err) throw err; });
-      await fs.mkdirSync(globalNotesRootFolder, (err) => { if (err) throw err; });
-    };
   };
 
   // activate - Get This Projects Local Notes Folder 
@@ -246,6 +247,10 @@ async function activate(context) {
 async function setNotesRootFolder() {
 
   // setNotesRootFolder - Get Global Notes Folder From User 
+  let retSelection = await vscode.window.showWarningMessage('This operation will rename old notes location to new notes location. It is recommended to backup your notes first.', 'Continue', 'Cancel');
+  if (retSelection != "Continue") {
+    return;
+  };
   const home = vscode.Uri.file(path.join(os.homedir()));
   const options = {
     title: "Select Folder Location for Global and Local Notes",
@@ -253,14 +258,13 @@ async function setNotesRootFolder() {
     canSelectMany: false,
     canSelectFolders: true,
     canSelectFiles: false,
-    openLabel: "Select Folder for All Global and Local Notes"
+    openLabel: "Select The Folder for All Global and Local Notes"
   };
   const folderUri = await vscode.window.showOpenDialog(options);
   if (folderUri && folderUri[0]) {
-    if (fs.existsSync(path.join(allProjectNotesLocation, '.projectnotes'))) {
-      await fs.renameSync(path.join(allProjectNotesLocation, '.projectnotes'), path.join(folderUri[0].fsPath, '.projectnotes'));
-    };
-    allProjectNotesLocation = folderUri[0].fsPath;
+    await fs.renameSync(allProjectNotesLocation, path.join(folderUri[0].fsPath, path.sep, ".projectnotes"));
+    allProjectNotesLocation = path.join(folderUri[0].fsPath, path.sep, ".projectnotes");
+    console.log("allProjectNotesLocation", allProjectNotesLocation);
     await settings.update("projectNotesFolderLocation", allProjectNotesLocation, 1);
     await vscode.commands.executeCommand('workbench.action.restartExtensionHost');
     //await vscode.commands.executeCommand('workbench.action.reloadWindow');

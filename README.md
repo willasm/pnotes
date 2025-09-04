@@ -6,16 +6,11 @@
 
 <!-- omit in toc -->
 # Project Notes
-IMPORTANT CHANGE IN v2.1.0
-Please see [Local Notes Have Moved.md](/LocalNotesHaveMoved.md) for details.
-
-IMPORTANT: If you have the old version of this extension installed `Project Notes + TODO Highlighter` it should be removed before installing this newer version. They are not compatible with each other and will cause issues if they are run simutaneously.
-
-Note: This is a complete rewrite of my earlier version `Project Notes + TODO Highlighter` found here on [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=willasm.project-notes) and on [Github](https://github.com/willasm/project-notes). The syntax highlighting was only intended to be a minor addition to the extension but it has grown to the point where it really needed be its own seperate extension. `Comment Highlighter` can now be found on [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=willasm.comment-highlighter) and on [Github](https://github.com/willasm/comment-highlighter). Seperating the old extension into two extensions allows me to focus exclusivly on each of the new extensions as needed. The old extension will remain available for those that wish to use it but it will only receive limited support for bug fixes if they are discovered.
 
 <!-- omit in toc -->
 ## Table of Contents
 - [Features](#features)
+- [Where Your Notes Are Stored](#where-your-notes-are-stored)
 - [Screenshot](#screenshot)
 - [Settings](#settings)
 - [Commands](#commands)
@@ -50,7 +45,8 @@ Note: This is a complete rewrite of my earlier version `Project Notes + TODO Hig
 - Auto generates `(Project Notes Guide).md` in Global Notes folder - Quick guide on this extensions usage
   - This file can safely be deleted after viewing
   - Will only create the file once (Can be re-created by enabling it in the settings)
-- User definable colors for all notes
+- User definable colors for all notes in the treeviews
+  - Default colors support Light, Dark, and High Contrast themes
   - In settings.json under the key "workbench.colorCustomizations" type "pnoteTreeItem." to get a popup of all available colors
   - See [Changing the Default File Colors](#changing-the-default-file-colors) for details
 - Assign different icons to any note you wish (must be .svg files)
@@ -61,14 +57,52 @@ Note: This is a complete rewrite of my earlier version `Project Notes + TODO Hig
   - You can remove current user icons with the command `Project Notes: Remove User Icons`
 - Assign a priority to any note (Priority 1 to 5, each with its own color and icon)
 
+Note: This is a complete rewrite of my earlier version `Project Notes + TODO Highlighter` found here on [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=willasm.project-notes) and on [Github](https://github.com/willasm/project-notes). The syntax highlighting was only intended to be a minor addition to the extension but it has grown to the point where it really needed be its own seperate extension. `Comment Highlighter` can now be found on [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=willasm.comment-highlighter) and on [Github](https://github.com/willasm/comment-highlighter). Seperating the old extension into two extensions allows me to focus exclusivly on each of the new extensions as needed. The old extension will remain available for those that wish to use it but it will only receive limited support for bug fixes if they are discovered.
+
+IMPORTANT: If you have the old version of this extension installed `Project Notes + TODO Highlighter` it should be removed before installing this newer version. They are not compatible with each other and will cause issues if they are run simutaneously.
+
+## Where Your Notes Are Stored
+> IMPORTANT CHANGE MADE IN v2.1.0
+> 
+> Please see [LocalNotesHaveMoved.md](/LocalNotesHaveMoved.md) for details.
+> 
+> (This only affects anyone that installed v2.0.0 or v2.0.1 or v2.0.2)
+
+By default your notes are located in your users Home folder inside the subfolder `.projectnotes`. Within this subfolder are two more subfolders, `global` and `projects` which contain your Global and Projects notes.
+
+An example tree structure inside the users home folder would be...
+
+```
+.projectnotes
+├── global
+│   ├── Nodemon - FAQ.md
+│   ├── Nodemon - Readme.md
+│   ├── Nodemon - Sample.md
+│   ├── npkill.md
+│   ├── (Project Notes Guide).md
+└── projects
+    ├── snippets1714543890
+    │   ├── (Scratchpad).md
+    │   └── (TODO).md
+    └── test-folder374942317
+        ├── (Scratchpad).md
+        └── (TODO).md
+```
+
+You can copy any existing markdown notes you currently use to any of these folders and this extension will detect and display them.
+
+Note the numbers after your projects name. These are a hash generated from the path to your projects folder. This allows you to have multiple projects with the same name but located in different folder paths.
+
+You can change the location of your notes using the command `Project Notes: Set Global and Local Notes Folder Location`. This is accomplished by renaming your current notes folder to the newly selected folders location. This will keep all your current notes intact.
+
 ## Screenshot
 ![Example Screenshot](/images/ProjectNotesSidebar.png)
 <!-- ![App Screenshot](https://lanecdr.org/wp-content/uploads/2019/08/placeholder.png)   -->
 
 ## Settings
 - `Project Notes Folder Location` (Folder Name for Local and Global Notes)
-  - Use the command `Project Notes: Set Local Notes Folder Name` to set this
-  - Default is `.pnotes`
+  - Use the command `Project Notes: Set Global and Local Notes Folder Location` to change this setting
+  - Default is `.projectnotes` in the users home folder
 - `Auto Create Scratchpad Local Project Note`
   - Creates a local project note, `(Scratchpad).md` file
   - Useful for those quick notes that do not require a dedicated note file 
@@ -94,11 +128,13 @@ Note: This is a complete rewrite of my earlier version `Project Notes + TODO Hig
   - Default is `true`
 
 ## Commands
-The following commands are available from the command pallette: (Windows: CTRL+Shift+P or F1) (Mac: CMD+Shift+P)
+The following commands are available from the command pallette: (Windows/Linux: CTRL+Shift+P or F1) (Mac: CMD+Shift+P)
 - `Project Notes: Set Global and Local Notes Folder Location`
   - Sets the local and global notes locations folder name
   - Uses `ShowOpenDialog` to select a folder
-  - Defaults to `.projectnotes` folder in the users home folder
+    - The subfolder `.projectnotes` will be created in your folder selection for you
+    - Eg. Selecting the users home root folder `/home/william` will will store your notes in `/home/william/.projectnotes`
+  - Default location is set to `.projectnotes` folder in the users home folder
 
 - `Project Notes: Create New TODO Task`
   - Prompts for the text of a new task which will be appended to the `(TODO).md` file in the local projects folder
